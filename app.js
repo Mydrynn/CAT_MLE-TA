@@ -1,1417 +1,375 @@
-/* app.js — Translation Assist reviewer workflow mockup (front-end only)
-   - Plain HTML/CSS/Vanilla JS
-   - Uses in-memory state (no persistence)
-   - Renders screens: Reach Content Manager, Catalyst Design, Reviewer View
-   - Modals: Edit Course, MLE Review (4-step), Assign Reviewers (4-step), Review Progress
-   - Toasts + Demo control bar included
-*/
-
-(() => {
-  // -----------------------------
-  // 0) State
-  // -----------------------------
-  const initialState = () => ({
-    currentScreen: "reach", // "reach" | "design" | "reviewer"
-    reviewerMode: false,
-    reviewerLanguage: null, // "frCA" | "esLA"
-
-    mleApplied: true,
-    reviewersAssigned: false,
-    publishingLock: true,
-
-    activeModal: null, // null | "editCourse" | "mleReview" | "assignReviewers" | "reviewProgress" | "submitSuccess"
-    modalStep: 1,
-
-    selectedLanguages: ["frCA", "esLA"],
-
-    allowComments: true,
-    restrictToAssigned: true,
-    preventPublishUntilApproved: true,
-
-    dueDate: "",
-    instructions:
-      "Please review the Translation Assist suggestions for accuracy, tone, terminology, and local compliance. Approve each field if acceptable. Reject or comment where changes are required.",
-    notifyEmail: true,
-    notifyLink: true,
-    notifyOnComplete: true,
-
-    course: {
-      title: "Insider Trading",
-      catalogId: "CMP224-a92en",
-      metaLine: "Market Conduct | CMP224 | Course",
-      duration: "~25 mins",
-      pages: "38 Pages",
-      description:
-        'This course summarizes the laws prohibiting insider trading and the key components of an effective insider trading policy. It provides guidelines to help all employees avoid the serious penalties that can result from trading, or helping others trade, based on "inside" information.'
+const state = {
+  currentScreen: 'reach',
+  mleStep: 1,
+  assignStep: 1,
+  mleApplied: true,
+  reviewersAssigned: false,
+  activeModal: null,
+  activeReviewerLang: null,
+  reviewerDecision: null,
+  reviewerComment: '',
+  selectedLanguages: ['frCA', 'esLA'],
+  languages: {
+    frCA: {
+      key: 'frCA',
+      name: 'French (Canada)',
+      shortName: 'French (CA)',
+      catalogId: 'CMP224-a92frCA',
+      reviewer: 'Marie Dubois',
+      reviewerRole: 'Legal Reviewer',
+      status: 'Not assigned',
+      taChanges: 1,
+      approved: 0,
+      rejected: 0,
+      comments: 0,
+      suggestion: 'Nouveau texte ici',
+      title: 'VOUS êtes un INITIÉ dans notre entreprise!'
     },
-
-    languages: {
-      en: {
-        name: "English",
-        catalogId: "CMP224-a92en",
-        statusBadge: "Draft",
-        reviewerStatus: null
-      },
-      frCA: {
-        code: "frCA",
-        name: "French (Canada)",
-        shortName: "French (CA)",
-        catalogId: "CMP224-a92frCA",
-        reviewerOptions: [
-          { name: "Marie Dubois", role: "Legal Reviewer" },
-          { name: "Jean Tremblay", role: "Regional SME" },
-          { name: "Sophie Martin", role: "Compliance Reviewer" }
-        ],
-        reviewer: "Marie Dubois",
-        reviewerRole: "Legal Reviewer",
-        status: "Not assigned", // Not assigned | In Review | Approved | Changes Requested | Ready to Publish
-        taChanges: 1,
-        approved: 0,
-        rejected: 0,
-        comments: 0,
-        suggestion: "Nouveau texte ici",
-        review: {
-          decision: null, // "approve" | "reject" | null
-          comment: "",
-          submitted: false
-        }
-      },
-      esLA: {
-        code: "esLA",
-        name: "Spanish (Latin America)",
-        shortName: "Spanish (LA)",
-        catalogId: "CMP224-a92esLA",
-        reviewerOptions: [
-          { name: "Carlos Rivera", role: "Regional SME" },
-          { name: "Ana Morales", role: "Legal Reviewer" },
-          { name: "Lucia Fernandez", role: "Compliance Reviewer" }
-        ],
-        reviewer: "Carlos Rivera",
-        reviewerRole: "Regional SME",
-        status: "Not assigned",
-        taChanges: 1,
-        approved: 0,
-        rejected: 0,
-        comments: 0,
-        suggestion: "Nuevo texto aquí",
-        review: {
-          decision: null,
-          comment: "",
-          submitted: false
-        }
-      }
-    },
-
-    // used for MLE modal
-    mle: {
-      step: 1
+    esLA: {
+      key: 'esLA',
+      name: 'Spanish (Latin America)',
+      shortName: 'Spanish (LA)',
+      catalogId: 'CMP224-a92esLA',
+      reviewer: 'Carlos Rivera',
+      reviewerRole: 'Regional SME',
+      status: 'Not assigned',
+      taChanges: 1,
+      approved: 0,
+      rejected: 0,
+      comments: 0,
+      suggestion: 'Nuevo texto aquí',
+      title: 'USTED es una PERSONA CON INFORMACIÓN PRIVILEGIADA en nuestra empresa!'
     }
-  });
+  }
+};
 
-  let state = initialState();
+const reviewerOptions = {
+  frCA: ['Marie Dubois - Legal Reviewer', 'Jean Tremblay - Regional SME', 'Sophie Martin - Compliance Reviewer'],
+  esLA: ['Carlos Rivera - Regional SME', 'Ana Morales - Legal Reviewer', 'Lucia Fernandez - Compliance Reviewer']
+};
 
-  // -----------------------------
-  // 1) DOM bootstrap
-  // -----------------------------
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const app = document.getElementById('app');
+const toastRoot = document.getElementById('toast-root');
 
-  function ensureBaseScaffold() {
-    // Require a root container
-    let app = document.getElementById("app");
-    if (!app) {
-      app = document.createElement("div");
-      app.id = "app";
-      document.body.appendChild(app);
-    }
+function h(strings, ...values) {
+  return strings.reduce((acc, str, i) => acc + str + (values[i] ?? ''), '');
+}
 
-    // If the app is empty, inject a baseline layout that styles.css can target
-    if (!app.dataset.scaffolded) {
-      app.innerHTML = `
-        <div class="shell">
-          <aside class="sidebar" aria-label="Reach sidebar">
-            <div class="rail">
-              <button class="rail-icon active" title="Content">▦</button>
-              <button class="rail-icon" title="Catalog">☰</button>
-              <button class="rail-icon" title="Users">👤</button>
-              <button class="rail-icon" title="Reports">📊</button>
-              <button class="rail-icon" title="Settings">⚙</button>
-            </div>
-          </aside>
+function render() {
+  const screen = state.currentScreen === 'design' ? renderDesign() :
+                 state.currentScreen === 'reviewer' ? renderReviewer() : renderReach();
+  app.innerHTML = screen + renderDemoBar() + '<div class="chat">?</div>' + renderModal();
+  bindEvents();
+}
 
-          <div class="main">
-            <header class="topbar">
-              <div class="topbar-left">
-                <div class="brand"><span class="brand-mark">Reach</span></div>
-              </div>
-              <div class="topbar-right">
-                <button class="toplink" data-action="               <button class="iconbtn" title="Settings" data-action=" data-action="v class="userchip">Ed Hickey (Super User)</div>
-              </div>
-            </header>
-
-            <div class="content" id="screenHost"></div>
-          </div>
-
-          <button class="chat-fab" title="Help / Chat" aria-label="Help / Chat">💬</button>
-
-          <div class="toast-host" id="toastHost" aria-live="polite" aria-atomic="true"></div>
-
-          <div class="modal-host" id="modalHost" aria-live="polite"></div>
-
-          <div class="demo-bar" id="demoBar">
-            <button class="demobtn" data-action="resetDemoon class="demobtn" data-action="jumpAdminutton class="demobtn" data-action="jumpReviewer <button class="demobtn" data-action="completeAll   </div>
+function renderTopbar(type = 'reach') {
+  if (type === 'design') {
+    return h`
+      <div class="topbar">
+        <div class="brand"><div class="logo-square design-logo">D</div><span>Design</span></div>
+        <div class="design-tabs">
+          ${['Getting Started','Customize Your Course','Adaptive','Knowledge Check','Disclosure','Gamification','Features'].map((t,i)=>`<div class="design-tab ${i===1?'active':''}">${t}</div>`).join('')}
         </div>
-      `;
-      app.dataset.scaffolded = "true";
-    }
-  }
-
-  // -----------------------------
-  // 2) Rendering helpers
-  // -----------------------------
-  function escapeHtml(str) {
-    return String(str)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function badge(text, variant = "warning") {
-    // variants: warning, success, danger, neutral, info
-    return `<span class="badge badge-${variant}">${escapeHtml(text)}</span>`;
-  }
-
-  function pill(text, variant = "neutral") {
-    return `<span class="pill pill-${variant}">${escapeHtml(text)}</span>`;
-  }
-
-  function setBrand(mode) {
-    // Reach vs Design branding
-    const brand = $(".brand-mark");
-    const sidebar = $(".sidebar");
-    if (!brand) return;
-
-    if (mode === "design" || mode === "reviewer") {
-      brand.textContent = "Design";
-      brand.parentElement.classList.add("brand-design");
-      sidebar?.classList.add("sidebar-hidden"); // design looks more full-width in video
-    } else {
-      brand.textContent = "Reach";
-      brand.parentElement.classList.remove("brand-design");
-      sidebar?.classList.remove("sidebar-hidden");
-    }
-  }
-
-  function render() {
-    ensureBaseScaffold();
-    const host = $("#screenHost");
-    if (!host) return;
-
-    // Set brand based on screen
-    setBrand(state.currentScreen);
-
-    // Render screen
-    if (state.currentScreen === "reach") {
-      host.innerHTML = renderReachScreen();
-    } else if (state.currentScreen === "design") {
-      host.innerHTML = renderDesignScreen();
-    } else {
-      host.innerHTML = renderReviewerScreen();
-    }
-
-    // Render modal overlay if needed
-    renderModal();
-    // Update demo bar visibility (always visible per spec)
-    // Keep chat FAB visible
-  }
-
-  // -----------------------------
-  // 3) Screen A: Reach Content Manager
-  // -----------------------------
-  function renderReachScreen() {
-    const { course, languages } = state;
-    const fr = languages.frCA;
-    const es = languages.esLA;
-
-    const reviewerStatusBadge = (lang) => {
-      if (!lang) return "";
-      const s = lang.status;
-      if (s === "Not assigned") return pill("Not assigned", "neutral");
-      if (s === "In Review") return pill("In Review", "info");
-      if (s === "Approved") return pill("Review Approved", "success");
-      if (s === "Changes Requested") return pill("Changes Requested", "danger");
-      if (s === "Ready to Publish") return pill("Ready to Publish", "success");
-      return pill(s, "neutral");
-    };
-
-    const showProgressButton = state.reviewersAssigned;
-
-    return `
-      <div class="reach-page">
-        <div class="page-top">
-          <button class="btn btn-ghost" data-action="back      <div class="course-hero card">
-          <div class="hero-img">
-            <div class="img-placeholder"></div>
-          </div>
-          <div class="hero-text">
-            <div class="kicker">${escapeHtml(course.metaLine)}</div>
-            <h1 class="title">${escapeHtml(course.title)}</h1>
-            <div class="meta">${escapeHtml(course.duration)} • ${escapeHtml(course.pages)}</div>
-            <p class="desc">${escapeHtml(course.description)}</p>
-          </div>
+        <div class="top-actions">
+          <button class="btn ghost">Preview Course</button>
+          <button class="btn ghost">Import/Export XML</button>
+          <button class="btn purple" data-action="go-reach">Save & Exit</button>
+          <span>Ed.Hickey</span>
         </div>
-
-        <div class="stats-bar card">
-          <div class="stat"><div class="stat-num">52</div><div class="stat-lbl">Available Languages</div></div>
-          <div class="stat"><div class="stat-num">3</div><div class="stat-lbl">Language in Use</div></div>
-          <div class="stat"><div class="stat-num">3</div><div class="stat-lbl">Draft</div></div>
-          <div class="stat"><div class="stat-num">0</div><div class="stat-lbl">Published</div></div>
-        </div>
-
-        <div class="lang-accordion card">
-          <div class="section-title">Languages</div>
-
-          ${renderLanguageRow({
-            code: "en",
-            name: "English",
-            catalogId: languages.en.catalogId,
-            expanded: true,
-            draftBadge: true,
-            reviewerBadge: null,
-            actions: `
-              <button class="iconbtn" title="Preview" data-action="previewEnglishle="Edit" data-action="openEditCoursetn" title="Upload" data-action="noople="Download" dataandedBody: `
-              <div class="lang-expanded">
-                <div class="expanded-left">
-                  <div class="small">Library Version <strong>CMP224-a92en</strong></div>
-                  <div class="expanded-title">Insider Trading</div>
-                  <div class="small">Published by LRN on Apr 28, 2025</div>
-                </div>
-                <div class="expanded-right">
-                  <button class="btn btn-primary" data-action="openAssignReviewers{showProgressButton ? `<button class="btn btn-outline" data-action="openReviewProgress        </div>
-              </div>
-            `
-          })}
-
-          ${renderLanguageRow({
-            code: "frCA",
-            name: "French (Canada)",
-            catalogId: fr.catalogId,
-            expanded: false,
-            draftBadge: true,
-            reviewerBadge: reviewerStatusBadge(fr),
-            actions: `<button class="iconbtn" title="Menu" data-action="noopageRow({
-            code: "esLA",
-            name: "Spanish (Latin America)",
-            catalogId: es.catalogId,
-            expanded: false,
-            draftBadge: true,
-            reviewerBadge: reviewerStatusBadge(es),
-            actions: `<button class="iconbtn" title="Menu" data-action="noopiv>
-    `;
+      </div>`;
   }
-
-  function renderLanguageRow({ code, name, catalogId, expanded, draftBadge, reviewerBadge, actions, expandedBody }) {
-    return `
-      <div class="lang-row ${expanded ? "expanded" : ""}">
-        <div class="lang-main">
-          <button class="chev" data-action="toggleLang" data-lang="${code}" aria-label="Expandname">${escapeHtml(name)}</div>
-            <div class="lang-sub">${escapeHtml(catalogId)}</div>
-          </div>
-          <div class="lang-badges">
-            ${draftBadge ? badge("Draft", "warning") : ""}
-            ${reviewerBadge || ""}
-          </div>
-          <div class="lang-actions">${actions || ""}</div>
-        </div>
-        ${expanded && expandedBody ? `<div class="lang-body">${expandedBody}</div>` : ""}
+  return h`
+    <div class="topbar">
+      <div class="brand"><div class="logo-square">R</div><span>Reach</span></div>
+      <div class="top-actions">
+        <span>Content Customizations</span><span>⚙</span><span>Help</span><strong>Ed Hickey (Super User)</strong>
       </div>
-    `;
-  }
+    </div>`;
+}
 
-  // -----------------------------
-  // 4) Screen B: Catalyst Design editor
-  // -----------------------------
-  function renderDesignScreen() {
-    const { course, languages } = state;
+function renderSidebar() {
+  return h`<aside class="sidebar">
+    ${['⌂','▦','◉','✎','☁','⚙'].map((i,idx)=>`<div class="side-icon ${idx===1?'active':''}">${i}</div>`).join('')}
+  </aside>`;
+}
 
-    const rightPanelNotice = state.mleApplied
-      ? `
-        <div class="notice-card notice-warning">
-          <div class="notice-title">There are 2 language drafts with TA changes awaiting review.</div>
-          <button class="btn btn-outline btn-sm" data-action="openAssignReviewers;
+function badgeFor(lang) {
+  const cls = lang.status === 'Approved' ? 'approved' : lang.status === 'In Review' ? 'review' : lang.status === 'Changes Requested' ? 'locked' : 'draft';
+  const label = lang.status === 'Not assigned' ? 'Reviewer: Not assigned' : lang.status === 'Approved' ? 'Review Approved' : lang.status;
+  return `<span class="badge ${cls}">${label}</span>`;
+}
 
-    const progressButton = state.reviewersAssigned
-      ? `<button class="btn btn-outline btn-sm" data-action="openReviewProgressrn `
-      <div class="design-page">
-        <header class="design-header">
-          <div class="design-logo"><span class="logo-mark">C</span> Design</div>
-          <nav class="design-tabs">
-            <a class="tab active" href="#" data-action="noop">Getting Started</a>
-            <a class="tab" href="#" data-action="noop">Customize Your Course</a>
-            <a class="tab" href="#" data-action="noop">Adaptive</a>
-            <a class="tab" href="#" data-action="noop">Knowledge Check</a>
-            <a class="tab" href="#" data-action="noop">Disclosure</a>
-            <a class="tab" href="#" data-action="noop">Gamification</a>
-            <a class="tab" href="#" data-action="noop">Features</a>
-          </nav>
-          <div class="design-actions">
-            <button class="btn btn-outline btn-sm" data-action<div class="form-grid">
-              <label class="field">
-                <span>Course Name</span>
-                <input type="text" value="${escapeHtml(course.title)}" />
-              </label>
-
-              <label class="field field-wide">
-                <span>Get Started Page</span>
-                <textarea rows="4">${escapeHtml(course.description)}</textarea>
-              </label>
-
-              <label class="field field-wide">
-                <span>Long Course Description</span>
-                <textarea rows="3">This Insider Trading training course will help learners apply knowledge of insider trading legislation to real-world situations and scenarios.</textarea>
-              </label>
-
-              <label class="field">
-                <span>Course Duration (Minutes)</span>
-                <input type="text" value="25" />
-              </label>
-
-              <label class="field">
-                <span>Video</span>
-                <select><option selected>YES</option><option>NO</option></select>
-              </label>
-
-              <label class="field">
-                <span>Audio</span>
-                <select><option selected>YES</option><option>NO</option></select>
-              </label>
-            </div>
+function renderReach() {
+  return h`<div class="app-shell">
+    ${renderTopbar('reach')}
+    <div class="layout">
+      ${renderSidebar()}
+      <main class="content">
+        <div class="back">← Back to Content Manager</div>
+        <section class="card course-hero">
+          <div class="hero-img"></div>
+          <div>
+            <div class="kicker">Market Conduct | CMP224 | Course</div>
+            <h1>Insider Trading</h1>
+            <div class="meta"><span>~25 mins</span><span>38 Pages</span></div>
+            <p class="desc">This course summarizes the laws prohibiting insider trading and the key components of an effective insider trading policy. It provides guidelines to help all employees avoid the serious penalties that can result from trading, or helping others trade, based on “inside” information.</p>
           </div>
-
-          <aside class="design-right card">
-            <div class="panel-title">Multilingual Editing</div>
-            <div class="panel-copy">Do you want to simultaneously edit the localized version of this course</div>
-            <div class="toggle-row">
-              <span>Toggle:</span>
-              <span class="toggle-pill on">Yes</span>
-            </div>
-
-            <button class="btn btn-primary btn-full" data-action="openMleReviewl-divider"></div>
-
-            <div class="panel-title">AI-Powered Translation Assist</div>
-            <div class="panel-copy">Do you want textual changes to be automatically translated by AI?</div>
-            <div class="toggle-row">
-              <span>Toggle:</span>
-              <span class="toggle-pill on">Yes</span>
-            </div>
-
-            <div class="ta-box">
-              <div class="ta-hdr">Translation assist available for languages below.</div>
-              <div class="ta-sub">2 languages are available for Translation Assist</div>
-
-              <div class="ta-lang">
-                <div class="ta-name">CA - French</div>
-                <span class="toggle-mini on">On</span>
-              </div>
-              <div class="ta-lang">
-                <div class="ta-name">LA - Spanish</div>
-                <span class="toggle-mini on">On</span>
-              </div>
-            </div>
-
-            ${rightPanelNotice}
-            ${progressButton}
-
-            <div class="panel-divider"></div>
-
-            <div class="kv">
-              <div class="kv-row"><div>Status</div><div>${badge("Draft", "warning")}</div></div>
-              <div class="kv-row"><div>System ID</div><div class="muted">75477</div></div>
-              <div class="kv-row"><div>Catalog ID</div><div class="muted">${escapeHtml(languages.en.catalogId)}</div></div>
-            </div>
-
-            ${
-              state.preventPublishUntilApproved && state.reviewersAssigned
-                ? `<div class="notice-card notice-warning">
-                    <div class="notice-title">Publishing is locked until all assigned translation reviews are approved.</div>
-                  </div>`
-                : ""
-            }
-          </aside>
+        </section>
+        <section class="card stats">
+          <div class="stat"><div class="stat-num">52</div><div class="stat-label">Available Languages</div></div>
+          <div class="stat"><div class="stat-num">3</div><div class="stat-label">Language in Use</div></div>
+          <div class="stat"><div class="stat-num">3</div><div class="stat-label">Draft</div></div>
+          <div class="stat"><div class="stat-num">0</div><div class="stat-label">Published</div></div>
+        </section>
+        ${allApproved() ? '<div class="notice success">All reviews approved. Language drafts are ready for final admin review and publishing.</div>' : state.reviewersAssigned ? '<div class="notice info">Publishing is locked until all assigned translation reviews are approved.</div>' : '<div class="notice warn">There is 1 AI translation to be verified. Click here to view</div>'}
+        <div class="section-title">Language Versions</div>
+        <div class="language-list">
+          ${renderEnglishRow()}
+          ${Object.values(state.languages).map(renderLanguageRow).join('')}
         </div>
+      </main>
+    </div>
+  </div>`;
+}
+
+function renderEnglishRow() {
+  return h`<section class="lang-row">
+    <div class="lang-head">
+      <div class="chev">⌄</div>
+      <div><div class="lang-name">English</div><div class="lang-sub">CMP224-a92en</div></div>
+      <div class="badges"><span class="badge draft">Draft</span>${state.reviewersAssigned ? '<span class="badge locked">Publishing locked</span>' : ''}</div>
+      <div class="row-menu">⋯</div>
+    </div>
+    <div class="lang-detail">
+      <div>
+        <div class="detail-title">Library Version CMP224-a92en</div>
+        <div class="detail-meta">Insider Trading<br/>Published by LRN on Apr 28, 2025</div>
       </div>
-    `;
-  }
-
-  // -----------------------------
-  // 5) Screen: Reviewer view
-  // -----------------------------
-  function renderReviewerScreen() {
-    const langCode = state.reviewerLanguage || "frCA";
-    const lang = state.languages[langCode];
-
-    const reviewerName = lang.reviewer;
-    const languageName = lang.name;
-    const courseTitle = state.course.title;
-
-    const reviewedCount = lang.review.decision ? 1 : 0;
-
-    const decision = lang.review.decision; // approve | reject | null
-
-    const cardClass =
-      decision === "approve" ? "review-card approved" : decision === "reject" ? "review-card rejected" : "review-card";
-
-    const submitEnabled =
-      decision === "approve"
-        ? true
-        : decision === "reject"
-        ? state.allowComments && lang.review.comment.trim().length > 0
-        : false;
-
-    return `
-      <div class="reviewer-page">
-        <div class="reviewer-banner">
-          <div class="banner-title">Translation Review Mode</div>
-          <div class="banner-meta">
-            Reviewer: <strong>${escapeHtml(reviewerName)}</strong> &nbsp;|&nbsp;
-            Language: <strong>${escapeHtml(languageName)}</strong> &nbsp;|&nbsp;
-            Course: <strong>${escapeHtml(courseTitle)}</strong>
-          </div>
-          <div class="banner-note">Access is restricted to the assigned language draft only.</div>
-        </div>
-
-        <header class="design-header">
-          <div class="design-logo"><span class="logo-mark">C</span> Design</div>
-          <nav class="design-tabs">
-            <a class="tab active" href="#" data-action="noop">Getting Started</a>
-            <a class="tab" href="#" data-action="noop">Customize Your Course</a>
-            <a class="tab" href="#" data-action="noop">Adaptive</a>
-            <a class="tab" href="#" data-action="noop">Knowledge Check</a>
-            <a class="tab" href="#" data-action="noop">Disclosure</a>
-            <a class="tab" href="#" data-action="noop">Gamification</a>
-            <a class="tab" href="#" data-action="noop">Features</a>
-          </nav>
-          <div class="design-actions">
-            <button class="btn btn-ghost btn-sm" data-action="backToProgress         <li>What Is Insider...</li>
-              <li class="indent">1. YOU are an IN...</li>
-              <li class="indent">2. Dinner Conver...</li>
-              <li class="indent">3. Remember...</li>
-              <li class="indent">4. Broker Dilemma</li>
-              <li class="indent">5. Remember...</li>
-              <li class="indent">6. Keep It Betwe...</li>
-              <li class="indent">7. Thanks for hel...</li>
-            </ul>
-          </aside>
-
-          <main class="review-main">
-            <div class="card editor-card">
-              <div class="editor-title">Title</div>
-              <div class="editor-value">${escapeHtml(
-                langCode === "frCA"
-                  ? "VOUS êtes un INITIÉ dans notre entreprise!"
-                  : "¡USTED es un INFORMADO en nuestra empresa!"
-              )}</div>
-
-              <div class="editor-title mt16">Description</div>
-              <div class="empty-field">${badge("Pending", "danger")} <span class="muted">Current field is empty / needs verification.</span></div>
-
-              <div class="editor-title mt16">Description Translation</div>
-              <div class="${cardClass}" data-field="descTranslation">
-                <div class="review-field-left">
-                  <div class="orig">
-                    <div class="label">Original English:</div>
-                    <div class="value">New text here</div>
-                  </div>
-                  <div class="suggest">
-                    <div class="label">TA suggestion:</div>
-                    <div class="value">${escapeHtml(lang.suggestion)}</div>
-                    <div class="subvalue">${escapeHtml(langCode === "frCA" ? "Nouveau texte ici" : "Nuevo texto aquí")}</div>
-                  </div>
-                </div>
-
-                <div class="review-field-actions">
-                  <button class="iconbtn iconbtn-approve" title="Approve" data-action="reviewApproveitle="Reject" data-action="reviewReject</div>
-          </main>
-
-          <aside class="review-panel card">
-            <div class="panel-title">Review task</div>
-            <div class="kv">
-              <div class="kv-row"><div>Language:</div><div><strong>${escapeHtml(languageName)}</strong></div></div>
-              <div class="kv-row"><div>Assigned to:</div><div>${escapeHtml(reviewerName)}</div></div>
-              <div class="kv-row"><div>TA changes:</div><div>${lang.taChanges}</div></div>
-              <div class="kv-row"><div>Reviewed:</div><div>${reviewedCount} of ${lang.taChanges}</div></div>
-            </div>
-
-            <div class="panel-divider"></div>
-
-            <div class="panel-subtitle">Original English:</div>
-            <div class="panel-box">New text here</div>
-
-            <div class="panel-subtitle mt12">TA suggestion:</div>
-            <div class="panel-box">${escapeHtml(lang.suggestion)}</div>
-
-            <div class="panel-subtitle mt12">Decision:</div>
-            <div class="btnrow">
-              <button class="btn btn-outline btn-sm ${decision === "approve" ? "selected" : ""}" data-action="reviewApproveselected" : ""}" data-action="reviewReject
-            <textarea class="commentbox" rows="4" placeholder="Add a comment (required if rejecting)..." data-action="reviewn class="btn btn-primary btn-full mt12 ${submitEnabled ? "" : "disabled"}" ${
-      submitEnabled ? "" : "disabled"
-    } data-action="ls
-  // -----------------------------
-  function renderModal() {
-    const modalHost = $("#modalHost");
-    if (!modalHost) return;
-
-    if (!state.activeModal) {
-      modalHost.innerHTML = "";
-      return;
-    }
-
-    let content = "";
-    if (state.activeModal === "editCourse") content = modalEditCourse();
-    if (state.activeModal === "mleReview") content = modalMleReview();
-    if (state.activeModal === "assignReviewers") content = modalAssignReviewers();
-    if (state.activeModal === "reviewProgress") content = modalReviewProgress();
-    if (state.activeModal === "submitSuccess") content = modalSubmitSuccess();
-
-    modalHost.innerHTML = `
-      <div class="modal-backdrop" data-action="closeModal"dialog" aria-modal="true" aria-label="Modal" onclick="event.stopPropagation()">
-          ${content}
-        </div>
+      <div class="icon-actions">
+        <button class="icon-btn" title="Preview">👁</button>
+        <button class="icon-btn" title="Edit" data-action="open-edit">✎</button>
+        <button class="icon-btn" title="Upload">☁</button>
+        <button class="icon-btn" title="Download">⇩</button>
+        <button class="btn primary" data-action="open-assign">Assign Reviewers</button>
+        ${state.reviewersAssigned ? '<button class="btn" data-action="open-progress">View Review Progress</button>' : ''}
       </div>
-    `;
-  }
+    </div>
+  </section>`;
+}
 
-  function modalEditCourse() {
-    return `
-      <div class="modal-header">
-        <div class="modal-title">Edit Course</div>
-        <button class="iconbtn" title="Close" data-action="closeModaly">
-        <p>You will be directed to Catalyst Design to edit this course.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" data-action="closeModaltn btn-primary" data-action="continue      </div>
-    `;
-  }
+function renderLanguageRow(lang) {
+  return h`<section class="lang-row">
+    <div class="lang-head">
+      <div class="chev">›</div>
+      <div><div class="lang-name">${lang.name}</div><div class="lang-sub">${lang.catalogId}</div></div>
+      <div class="badges"><span class="badge draft">Draft</span>${badgeFor(lang)}</div>
+      <div class="row-menu">⋯</div>
+    </div>
+  </section>`;
+}
 
-  function modalMleReview() {
-    const step = state.modalStep;
-
-    const steps = [
-      { n: 1, t: "Structural Edits" },
-      { n: 2, t: "Textual Edits" },
-      { n: 3, t: "Confirm Languages" },
-      { n: 4, t: "Apply" }
-    ];
-
-    const stepper = `
-      <div class="stepper">
-        ${steps
-          .map((s) => {
-            const done = s.n < step;
-            const active = s.n === step;
-            return `
-              <div class="step ${done ? "done" : ""} ${active ? "active" : ""}">
-                <div class="circle">${s.n}</div>
-                <div class="label">${s.t}</div>
-              </div>
-            `;
-          })
-          .join("")}
-      </div>
-    `;
-
-    let body = "";
-    let footer = "";
-
-    if (step === 1) {
-      body = `
-        <div class="modal-section-title">Multilingual Editing Review</div>
-        ${stepper}
-        <div class="notice-card notice-success">
-          <div class="notice-title">No structural changes detected.</div>
-        </div>
-      `;
-      footer = `
-        <button class="btn btn-ghost" data<button class="btn btn-primary" data-action="nextModal(step === 2) {
-      body = `
-        <div class="modal-section-title">Multilingual Editing Review</div>
-        ${stepper}
-
-        <div class="split">
-          <div class="pane">
-            <input class="search" placeholder="Search" />
-            <div class="treebox">
-              <div class="treeitem">What Is Insider Trading?</div>
-              <div class="treeitem indent">YOU are an INSIDER at our company!</div>
-            </div>
-          </div>
-
-          <div class="pane">
-            <div class="small muted">Content &gt; Description</div>
-            <div class="contentbox">New text here</div>
-          </div>
-        </div>
-      `;
-      footer = `
-        <button class="btn btn-ghost" data <button class="btn btn-primary" data-action="nextModalStepp === 3) {
-      body = `
-        <div class="modal-section-title">Multilingual Editing Review</div>
-        ${stepper}
-
+function renderDesign() {
+  return h`<div class="app-shell">
+    ${renderTopbar('design')}
+    <div class="design-content">
+      <main class="editor-card">
+        <h1 class="editor-title">Course Information</h1>
+        <div class="form-row"><label class="label">Course Name</label><input class="input" value="Insider Trading" /></div>
+        <div class="form-row"><label class="label">Get Started Page</label><textarea class="textarea">This course summarizes the laws prohibiting insider trading and the key components of an effective insider trading policy.</textarea></div>
+        <div class="form-row"><label class="label">Long Course Description</label><textarea class="textarea">This course provides guidelines to help all employees avoid the serious penalties that can result from trading, or helping others trade, based on inside information.</textarea></div>
         <div class="two-col">
-          <div class="col card-lite">
-            <div class="col-title">Structural Changes</div>
-            <div class="small muted">Applies to 0 languages</div>
-            <div class="empty">No languages found</div>
-          </div>
-
-          <div class="col card-lite">
-            <div class="col-title">Textual Changes</div>
-            <div class="small muted">Applies to 2 languages</div>
-            <ul class="list">
-              <li>French (CA)</li>
-              <li>Spanish (LA)</li>
-            </ul>
-          </div>
+          <div class="form-row"><label class="label">Course Duration</label><input class="input" value="25" /></div>
+          <div class="form-row"><label class="label">Video</label><select><option>YES</option><option>NO</option></select></div>
         </div>
+        <div class="form-row"><label class="label">Audio</label><select><option>YES</option><option>NO</option></select></div>
+      </main>
+      <aside class="side-panel">
+        <div class="panel-title">Multilingual Editing</div>
+        <p class="panel-copy">Do you want to simultaneously edit the localized version of this course</p>
+        <div class="toggle-row"><strong>Yes</strong><div class="toggle"></div></div>
+        <button class="btn" data-action="open-mle">View MLE Result</button>
+        <div class="notice warn">There are 2 languages which don't have a draft.<br/>Create drafts to enable full multilingual editing.</div>
+        <div class="panel-divider"></div>
+        <div class="panel-title">AI-Powered Translation Assist</div>
+        <p class="panel-copy">Do you want textual changes to be automatically translated by AI?</p>
+        <div class="toggle-row"><strong>Yes</strong><div class="toggle"></div></div>
+        <p class="panel-copy">Translation assist available for languages below.<br/><strong>2 languages are available for Translation Assist</strong></p>
+        <div class="language-toggle"><span>CA - French</span><div class="toggle"></div></div>
+        <div class="language-toggle"><span>LA - Spanish</span><div class="toggle"></div></div>
+        <div class="panel-divider"></div>
+        <div class="status-grid"><div>Status <b>Draft</b></div><div>System ID <b>75477</b></div><div>Catalog ID <b>CMP224-a92en</b></div></div>
+        <div class="notice info"><strong>There are 2 language drafts with TA changes awaiting review.</strong><br/><br/><button class="btn primary" data-action="open-assign">Assign reviewers</button></div>
+        ${state.reviewersAssigned ? '<button class="btn" data-action="open-progress">View Review Progress</button>' : ''}
+      </aside>
+    </div>
+  </div>`;
+}
 
-        <div class="notice-card notice-warning">
-          <div class="notice-title">
-            Once proceed, textual changes will be saved as Drafts in all compatible languages. Open each draft, review and save to publish.
-          </div>
-        </div>
-      `;
-      footer = `
-        <button class="btn btn-ghost" data-action="prevModalStepn-primary"      `;
-    }
+function renderModal() {
+  if (!state.activeModal) return '';
+  if (state.activeModal === 'edit') return renderEditModal();
+  if (state.activeModal === 'mle') return renderMleModal();
+  if (state.activeModal === 'assign') return renderAssignModal();
+  if (state.activeModal === 'progress') return renderProgressModal();
+  if (state.activeModal === 'submitted') return renderSubmittedModal();
+  return '';
+}
 
-    if (step === 4) {
-      body = `
-        <div class="modal-section-title">Multilingual Editing Review</div>
-        ${stepper}
+function renderEditModal() {
+  return h`<div class="modal-backdrop"><div class="modal small">
+    <div class="modal-head"><div class="modal-title">Edit Course</div><button class="close" data-action="close-modal">×</button></div>
+    <div class="modal-body"><p>You will be directed to Catalyst Design to edit this course.</p></div>
+    <div class="modal-foot"><button class="btn ghost" data-action="close-modal">No Thanks</button><button class="btn primary" data-action="go-design">Continue to Catalyst Design</button></div>
+  </div></div>`;
+}
 
-        <div class="notice-card notice-success">
-          <div class="notice-title">
-            All Changes Applied Successfully! Language translations are now in Draft state. Navigate to each language draft, review and save to publish.
-          </div>
-        </div>
+function stepper(labels, active) {
+  return `<div class="stepper">${labels.map((l,i)=>`<div class="step ${i+1===active?'active':i+1<active?'done':''}"><span class="step-num">${i+1<active?'✓':i+1}</span><span>${l}</span></div>`).join('')}</div>`;
+}
 
-        <div class="two-col">
-          <div class="col card-lite">
-            <div class="col-title">Structural Changes</div>
-            <div class="small muted">Saved 0 languages</div>
-            <div class="empty">No languages found</div>
-          </div>
+function renderMleModal() {
+  const step = state.mleStep;
+  let body = '';
+  if (step === 1) body = '<div class="notice success">No structural changes detected.</div>';
+  if (step === 2) body = h`<h3>Review Textual Changes (1 changes)</h3><div class="split"><div><input class="input" placeholder="Search"/><div class="tree"><div class="tree-item">What Is Insider Trading?</div><div class="tree-item active">YOU are an INSIDER at our company!</div></div></div><div class="review-pane"><div class="field-chip">Content &gt; Description</div><div class="new-text">New text here</div></div></div>`;
+  if (step === 3) body = h`<div class="assign-grid"><div class="option-card"><h3>Structural Changes</h3><p class="small-text">Applies to 0 languages</p><div class="notice">No languages found</div></div><div class="option-card"><h3>Textual Changes</h3><p class="small-text">Applies to 2 languages</p><div class="badge review">French (CA)</div> <div class="badge review">Spanish (LA)</div></div></div><div class="notice warn">Once proceed, textual changes will be saved as Drafts in all compatible languages. Open each draft, review and save to publish.</div>`;
+  if (step === 4) body = h`<div class="notice success"><strong>All Changes Applied Successfully!</strong> Language translations are now in Draft state. Navigate to each language draft, review and save to publish.</div><div class="assign-grid"><div class="option-card"><h3>Structural Changes</h3><p class="small-text">Saved 0 languages</p><div class="notice">No languages found</div></div><div class="option-card"><h3>Textual Changes</h3><p class="small-text">Applied to 2 languages</p><div class="badge review">French (CA)</div> <div class="badge review">Spanish (LA)</div></div></div>`;
+  return h`<div class="modal-backdrop"><div class="modal large"><div class="modal-head"><div class="modal-title">Multilingual Editing Review</div><button class="close" data-action="close-modal">×</button></div><div class="modal-body">${stepper(['Structural Edits','Textual Edits','Confirm Languages','Apply'], step)}${body}</div><div class="modal-foot">${step>1?'<button class="btn ghost" data-action="mle-back">Back</button>':''}${step<4?'<button class="btn primary" data-action="mle-next">Continue</button>':'<button class="btn ghost" data-action="close-modal">Cancel</button><button class="btn primary" data-action="mle-done">Done</button>'}</div></div></div>`;
+}
 
-          <div class="col card-lite">
-            <div class="col-title">Textual Changes</div>
-            <div class="small muted">Applied to 2 languages</div>
-            <ul class="list">
-              <li>French (CA)</li>
-              <li>Spanish (LA)</li>
-            </ul>
-          </div>
-        </div>
-      `;
-      footer = `
-        <button class="btn btn-ghost" data-action="closeModalbtn-primary" data
-    // Include the exact MLE status message somewhere (per your copy list)
-    // It appears in the video modal as an informational note.
-    const mleStatusMessage = `
-      <div class="notice-card notice-warning">
-        <div class="notice-title">There are 2 languages which don't have a draft.</div>
-        <div class="notice-body">Create drafts to enable full multilingual editing.</div>
-      </div>
-    `;
+function renderAssignModal() {
+  const step = state.assignStep;
+  let body = '';
+  if (step === 1) body = h`<div class="notice info"><strong>Insider Trading</strong><br/>CMP224-a92en<br/>2 languages have Translation Assist changes awaiting review.</div><div class="lang-cards">${Object.values(state.languages).map(lang=>`<div class="lang-card selected"><h3>${lang.name}</h3><p class="small-text">Catalog ID: ${lang.catalogId}<br/>TA changes: ${lang.taChanges}<br/>Status: Draft<br/>Reviewer status: ${lang.status}</p></div>`).join('')}</div>`;
+  if (step === 2) body = h`<div class="assign-grid">${Object.values(state.languages).map(lang=>`<div class="option-card"><h3>${lang.name}</h3><label class="label">Reviewer</label><select data-reviewer="${lang.key}">${reviewerOptions[lang.key].map(opt=>`<option ${opt.startsWith(lang.reviewer)?'selected':''}>${opt}</option>`).join('')}</select></div>`).join('')}</div><div class="option-card"><label class="check-row"><input type="checkbox" checked/> Allow reviewers to comment and request changes</label><label class="check-row"><input type="checkbox" checked/> Restrict reviewers to assigned language drafts only</label><label class="check-row"><input type="checkbox" checked/> Prevent publishing until all assigned reviews are approved</label></div>`;
+  if (step === 3) body = h`<div class="form-row"><label class="label">Due date</label><input type="date" class="input" /></div><div class="form-row"><label class="label">Instructions to reviewers</label><textarea class="textarea">Please review the Translation Assist suggestions for accuracy, tone, terminology, and local compliance. Approve each field if acceptable. Reject or comment where changes are required.</textarea></div><div class="option-card"><label class="check-row"><input type="checkbox" checked/> Send email notification</label><label class="check-row"><input type="checkbox" checked/> Include direct link to assigned language draft</label><label class="check-row"><input type="checkbox" checked/> Notify me when all reviews are complete</label></div>`;
+  if (step === 4) body = h`<div class="notice info">You are assigning translation review tasks for <strong>Insider Trading</strong>.</div><div class="assign-grid">${Object.values(state.languages).map(lang=>`<div class="option-card"><h3>${lang.name}</h3><p class="small-text">Reviewer: <strong>${lang.reviewer}</strong><br/>Scope: 1 TA change<br/>Access: Assigned language draft only</p></div>`).join('')}</div><div class="notice warn">Publishing lock: Enabled until reviews are approved<br/>Notifications: Email reviewers and notify admin on completion</div>`;
+  return h`<div class="modal-backdrop"><div class="modal large"><div class="modal-head"><div class="modal-title">Assign Translation Reviewers</div><button class="close" data-action="close-modal">×</button></div><div class="modal-body">${stepper(['Select Languages','Assign Reviewers','Review Instructions','Confirm'], step)}${body}</div><div class="modal-foot"><button class="btn ghost" data-action="${step===1?'close-modal':'assign-back'}">${step===1?'Cancel':'Back'}</button><button class="btn primary" data-action="${step<4?'assign-next':'assign-done'}">${step<4?'Continue':'Assign Reviewers'}</button></div></div></div>`;
+}
 
-    return `
-      <div class="modal-header">
-        <div class="modal-title">Multilingual Editing Review</div>
-        <button class="iconbtn" title="Close" data-action=""modal-body">
-        ${step <= 2 ? mleStatusMessage : ""}
-        ${body}
-      </div>
-      <div class="modal-footer">${footer}</div>
-    `;
-  }
+function renderProgressModal() {
+  return h`<div class="modal-backdrop"><div class="modal large"><div class="modal-head"><div class="modal-title">Translation Review Progress</div><button class="close" data-action="close-modal">×</button></div><div class="modal-body">${allApproved()?'<div class="notice success">All reviews approved. Language drafts are ready for final admin review and publishing.</div>':''}<table><thead><tr><th>Language</th><th>Reviewer</th><th>TA Changes</th><th>Approved</th><th>Rejected</th><th>Comments</th><th>Status</th></tr></thead><tbody>${Object.values(state.languages).map(lang=>`<tr><td>${lang.name}</td><td>${lang.reviewer}</td><td>${lang.taChanges}</td><td>${lang.approved}</td><td>${lang.rejected}</td><td>${lang.comments}</td><td><span class="badge ${lang.status==='Approved'?'approved':'review'}">${lang.status}</span></td></tr>`).join('')}</tbody></table></div><div class="modal-foot"><button class="btn" data-review-open="frCA">Open French Reviewer View</button><button class="btn" data-review-open="esLA">Open Spanish Reviewer View</button><button class="btn ghost" data-action="toast-reminder">Send Reminder</button>${allApproved()?'<button class="btn primary" data-action="go-reach">Open Language Drafts</button>':''}<button class="btn ghost" data-action="close-modal">Close</button></div></div></div>`;
+}
 
-  function modalAssignReviewers() {
-    const step = state.modalStep;
-    const fr = state.languages.frCA;
-    const es = state.languages.esLA;
+function renderSubmittedModal() {
+  return h`<div class="modal-backdrop"><div class="modal small"><div class="modal-head"><div class="modal-title">Review submitted</div></div><div class="modal-body"><div class="notice success">Review submitted successfully. The administrator has been notified.</div></div><div class="modal-foot"><button class="btn primary" data-action="open-progress">Return to Progress</button></div></div></div>`;
+}
 
-    const steps = [
-      { n: 1, t: "Select Languages" },
-      { n: 2, t: "Assign Reviewers" },
-      { n: 3, t: "Review Instructions" },
-      { n: 4, t: "Confirm" }
-    ];
+function renderReviewer() {
+  const lang = state.languages[state.activeReviewerLang || 'frCA'];
+  const reviewed = lang.approved + lang.rejected;
+  const complete = reviewed >= lang.taChanges;
+  return h`<div class="app-shell">
+    ${renderTopbar('design')}
+    <div class="review-banner"><span>Translation Review Mode</span><span>Reviewer: ${lang.reviewer} · Language: ${lang.name} · Course: Insider Trading</span></div>
+    <div class="reviewer-layout">
+      <aside class="lesson-tree"><div class="lesson-heading">Insider Trading</div>${['Launch Course...','What Is Insider...','1. YOU are an IN...','2. Dinner Conver...','3. Remember...','4. Broker Dilemma','5. Remember...','6. Keep It Betwe...','7. Thanks for hel...'].map((x,i)=>`<div class="lesson-node ${i===2?'active':''}">${x}</div>`).join('')}</aside>
+      <main class="review-main"><div class="translation-card ${lang.approved?'approved':lang.rejected?'rejected':''}"><div class="form-row"><label class="label">Title</label><input class="input" value="${lang.title}" /></div><div class="form-row"><label class="label">Description</label><div class="empty-field"></div></div><div class="form-row"><label class="label">Description Translation</label><div class="suggestion"><div><div class="small-text">Original English:</div><strong>New text here</strong><br/><br/><div class="small-text">TA suggestion:</div><strong>${lang.suggestion}</strong></div><div><button class="round ok" data-action="approve-review">✓</button><button class="round no" data-action="reject-review" style="margin-left:8px">×</button></div></div></div></div></main>
+      <aside class="review-side"><div class="panel-title">Review task</div><p class="small-text">Language: <strong>${lang.name}</strong><br/>Assigned to: <strong>${lang.reviewer}</strong><br/>TA changes: ${lang.taChanges}<br/>Reviewed: ${reviewed} of ${lang.taChanges}</p><div class="progress-meter"><span style="width:${complete?'100':'0'}%"></span></div><div class="panel-divider"></div><div class="label">Original English:</div><div class="notice">New text here</div><div class="label">TA suggestion:</div><div class="notice info">${lang.suggestion}</div><div class="form-row"><label class="label">Decision:</label><button class="btn primary" data-action="approve-review">Approve</button> <button class="btn danger" data-action="reject-review">Reject</button></div><div class="form-row"><label class="label">Comment:</label><textarea class="textarea" data-comment>${state.reviewerComment}</textarea></div><button class="btn primary" data-action="submit-review" ${!complete?'disabled':''}>Submit Review</button> <button class="btn ghost" data-action="open-progress">Back to Progress</button></aside>
+    </div>
+  </div>`;
+}
 
-    const stepper = `
-      <div class="stepper">
-        ${steps
-          .map((s) => {
-            const done = s.n < step;
-            const active = s.n === step;
-            return `
-              <div class="step ${done ? "done" : ""} ${active ? "active" : ""}">
-                <div class="circle">${s.n}</div>
-                <div class="label">${s.t}</div>
-              </div>
-            `;
-          })
-          .join("")}
-      </div>
-    `;
+function renderDemoBar() {
+  return h`<div class="demo-bar"><button class="btn ghost" data-action="reset">Reset Demo</button><button class="btn ghost" data-action="go-reach">Jump to Admin</button><button class="btn ghost" data-review-open="frCA">Jump to Reviewer</button><button class="btn ghost" data-action="complete-all">Complete All Reviews</button></div>`;
+}
 
-    let body = "";
-    let footer = "";
-
-    if (step === 1) {
-      body = `
-        <div class="modal-section-title">Assign Translation Reviewers</div>
-        ${stepper}
-
-        <div class="summary">
-          <div class="summary-title">${escapeHtml(state.course.title)}</div>
-          <div class="small muted">${escapeHtml(state.course.catalogId)}</div>
-          <div class="small">2 languages have Translation Assist changes awaiting review.</div>
-        </div>
-
-        <div class="card-grid">
-          ${languageSelectCard("frCA")}
-          ${languageSelectCard("esLA")}
-        </div>
-      `;
-      footer = `
-        <button class="btn btn-ghost" data<button class="btn btn-primary" data-action }
-
-    if (step === 2) {
-      body = `
-        <div class="modal-section-title">Assign Translation Reviewers</div>
-        ${stepper}
-
-        <div class="split">
-          <div class="pane">
-            <div class="pane-title">Selected languages</div>
-            <div class="chips">
-              ${state.selectedLanguages.includes("frCA") ? `<span class="chip">French (Canada)</span>` : ""}
-              ${state.selectedLanguages.includes("esLA") ? `<span class="chip">Spanish (Latin America)</span>` : ""}
-            </div>
-
-            <div class="checklist">
-              <label class="check">
-                <input type="checkbox" data-action="toggleAllowComments" ${state.allowComments ? "checked" : ""  </label>
-
-              <label class="check">
-                <input type="checkbox" data-action="toggleRestrictAssigned" ${state.restrictToAssigned ? "checked" : ""  </label>
-
-              <label class="check">
-                <input type="checkbox" data-action="togglePreventPublish" ${state.preventPublishUntilApproved ? "             </label>
-            </div>
-          </div>
-
-          <div class="pane">
-            <div class="pane-title">Assign reviewers</div>
-
-            ${
-              state.selectedLanguages.includes("frCA")
-                ? `
-              <div class="assign-block">
-                <div class="assign-title">French (Canada)</div>
-                <div class="small muted">Reviewer:</div>
-                <select data-action="setReviewer" data-lang="frCAs
-                    .map((o) => `<option ${o.name === fr.reviewer ? "selected" : ""} value="${escapeHtml(o.name)}">${escapeHtml(
-                      o.name
-                    )} - ${escapeHtml(o.role)}</option>`)
-                    .join("")}
-                </select>
-              </div>`
-                : ""
-            }
-
-            ${
-              state.selectedLanguages.includes("esLA")
-                ? `
-              <div class="assign-block">
-                <div class="assign-title">Spanish (Latin America)</div>
-                <div class="small muted">Reviewer:</div>
-                <select data-action="setReviewer" data-lang="esLAs
-                    .map((o) => `<option ${o.name === es.reviewer ? "selected" : ""} value="${escapeHtml(o.name)}">${escapeHtml(
-                      o.name
-                    )} - ${escapeHtml(o.role)}</option>`)
-                    .join("")}
-                </select>
-              </div>`
-                : ""
-            }
-          </div>
-        </div>
-      `;
-      footer = `
-        <button class="btn btn-ghost" data-action="class="btn btn-primary" data-action="
-
-    if (step === 3) {
-      body = `
-        <div class="modal-section-title">Assign Translation Reviewers</div>
-        ${stepper}
-
-        <div class="form-grid">
-          <label class="field">
-            <span>Due date</span>
-            <input type="date" value="${escapeHtml(state.dueDate)}" data-action="setDueDate       <span>Instructions to reviewers</span>
-            <textarea rows="4" data-actionate.instructions)}</textarea>
-          </label>
-        </div>
-
-        <div class="checklist">
-          <label class="check">
-            <input type="checkbox" data-action="toggleNotifyEmail" ${state.notifyEmail ? "checked" :el class="check">
-            <input type="checkbox" data-action="toggleNotifyLink" ${state.notifyLink ? "checked"  </label>
-
-          <label class="check">
-            <input type="checkbox" data-action="toggleNotifyOnComplete" ${state.notifyOnComplete ? "abel>
-        </div>
-      `;
-      footer = `
-        <button class="btn btn-ghost" data-action="prevModalStepn-primary" data-action }
-
-    if (step === 4) {
-      const lockText = state.preventPublishUntilApproved
-        ? "Publishing lock: Enabled until reviews are approved"
-        : "Publishing lock: Not enabled";
-
-      body = `
-        <div class="modal-section-title">Assign Translation Reviewers</div>
-        ${stepper}
-
-        <div class="confirm-copy">
-          You are assigning translation review tasks for ${escapeHtml(state.course.title)}.
-        </div>
-
-        <div class="confirm-block">
-          ${
-            state.selectedLanguages.includes("frCA")
-              ? `
-            <div class="confirm-lang">
-              <div class="confirm-title">French (Canada)</div>
-              <div class="small">Reviewer: <strong>${escapeHtml(fr.reviewer)}</strong></div>
-              <div class="small">Scope: 1 TA change</div>
-              <div class="small">Access: Assigned language draft only</div>
-            </div>`
-              : ""
-          }
-
-          ${
-            state.selectedLanguages.includes("esLA")
-              ? `
-            <div class="confirm-lang">
-              <div class="confirm-title">Spanish (Latin America)</div>
-              <div class="small">Reviewer: <strong>${escapeHtml(es.reviewer)}</strong></div>
-              <div class="small">Scope: 1 TA change</div>
-              <div class="small">Access: Assigned language draft only</div>
-            </div>`
-              : ""
-          }
-        </div>
-
-        <div class="notice-card notice-warning">
-          <div class="notice-title">${escapeHtml(lockText)}</div>
-        </div>
-
-        <div class="small muted">
-          Notifications: ${state.notifyEmail ? "Email reviewers" : "No email"} ${
-        state.notifyOnComplete ? "and notify admin on completion" : ""
-      }
-        </div>
-      `;
-
-      footer = `
-        <button class="btn btn-ghost" data-actionn class="btn btn-primary" data-action="assign   `;
-    }
-
-    return `
-      <div class="modal-header">
-        <div class="modal-title">Assign Translation Reviewers</div>
-        <button class="iconbtn" title="Close" data-action="closel-body">${body}</div>
-      <div class="modal-footer">${footer}</div>
-    `;
-  }
-
-  function languageSelectCard(code) {
-    const lang = state.languages[code];
-    const selected = state.selectedLanguages.includes(code);
-
-    // Reviewer status display per spec
-    const reviewerStatusText = lang.status === "Not assigned" ? "Not assigned" : lang.status;
-
-    return `
-      <button class="lang-card ${selected ? "selected" : ""}" data-action="toggleLanguageSelect" data-lang="${code"small muted">Catalog ID: ${escapeHtml(lang.catalogId)}</div>
-        <div class="small">TA changes: ${lang.taChanges}</div>
-        <div class="small">Status: Draft</div>
-        <div class="small">Reviewer status: ${escapeHtml(reviewerStatusText)}</div>
-      </button>
-    `;
-  }
-
-  function modalReviewProgress() {
-    const fr = state.languages.frCA;
-    const es = state.languages.esLA;
-
-    const allApproved = fr.status === "Approved" && es.status === "Approved";
-
-    return `
-      <div class="modal-header">
-        <div class="modal-title">Translation Review Progress</div>
-        <button class="iconbtn" title="Close" data-actionss="modal-body">
-        ${
-          allApproved
-            ? `
-          <div class="notice-card notice-success">
-            <div class="notice-title">All reviews approved. Language drafts are ready for final admin review and publishing.</div>
-            <button class="btn btn-outline btn-sm" dataton>
-          </div>`
-            : ""
-        }
-
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Language</th>
-              <th>Reviewer</th>
-              <th class="num">TA Changes</th>
-              <th class="num">Approved</th>
-              <th class="num">Rejected</th>
-              <th class="num">Comments</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>${escapeHtml(fr.name)}</td>
-              <td>${escapeHtml(fr.reviewer)}</td>
-              <td class="num">${fr.taChanges}</td>
-              <td class="num">${fr.approved}</td>
-              <td class="num">${fr.rejected}</td>
-              <td class="num">${fr.comments}</td>
-              <td>${statusPill(fr.status)}</td>
-            </tr>
-            <tr>
-              <td>${escapeHtml(es.name)}</td>
-              <td>${escapeHtml(es.reviewer)}</td>
-              <td class="num">${es.taChanges}</td>
-              <td class="num">${es.approved}</td>
-              <td class="num">${es.rejected}</td>
-              <td class="num">${es.comments}</td>
-              <td>${statusPill(es.status)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-outline" data-action="openReviewer" data-lang="frCAbtn-outline" data-action="openReviewer" data-lang="esLA btn-ghost" data-action="sendton class="btn btn-primary" data-action="closeModalction statusPill(status) {
-    if (status === "Not assigned") return pill("Not assigned", "neutral");
-    if (status === "In Review") return pill("In Review", "info");
-    if (status === "Approved") return pill("Approved", "success");
-    if (status === "Changes Requested") return pill("Changes Requested", "danger");
-    if (status === "Ready to Publish") return pill("Ready to Publish", "success");
-    return pill(status, "neutral");
-  }
-
-  function modalSubmitSuccess() {
-    return `
-      <div class="modal-header">
-        <div class="modal-title">Success</div>
-        <button class="iconbtn" title="Close" data-action="closeModaly">
-        <div class="notice-card notice-success">
-          <div class="notice-title">Review submitted successfully. The administrator has been notified.</div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" data</div>
-    `;
-  }
-
-  // -----------------------------
-  // 7) Toasts
-  // -----------------------------
-  function toast(message, variant = "success", ms = 3200) {
-    const host = $("#toastHost");
-    if (!host) return;
-
-    const el = document.createElement("div");
-    el.className = `toast toast-${variant}`;
-    el.textContent = message;
-
-    host.appendChild(el);
-    setTimeout(() => {
-      el.classList.add("out");
-      setTimeout(() => el.remove(), 300);
-    }, ms);
-  }
-
-  // -----------------------------
-  // 8) Actions / Updates
-  // -----------------------------
-  function openModal(name, step = 1) {
-    state.activeModal = name;
-    state.modalStep = step;
-    render();
-  }
-
-  function closeModal() {
+function bindEvents() {
+  document.querySelectorAll('[data-action]').forEach(el => el.addEventListener('click', handleAction));
+  document.querySelectorAll('[data-review-open]').forEach(el => el.addEventListener('click', () => {
+    state.activeReviewerLang = el.dataset.reviewOpen;
     state.activeModal = null;
-    state.modalStep = 1;
+    state.currentScreen = 'reviewer';
     render();
-  }
+  }));
+  document.querySelectorAll('[data-reviewer]').forEach(sel => sel.addEventListener('change', e => {
+    const lang = state.languages[e.target.dataset.reviewer];
+    const [name, role] = e.target.value.split(' - ');
+    lang.reviewer = name;
+    lang.reviewerRole = role;
+  }));
+  const comment = document.querySelector('[data-comment]');
+  if (comment) comment.addEventListener('input', e => state.reviewerComment = e.target.value);
+}
 
-  function nextStep(max = 4) {
-    state.modalStep = Math.min(max, state.modalStep + 1);
-    render();
-  }
+function handleAction(e) {
+  const action = e.currentTarget.dataset.action;
+  if (action === 'close-modal') state.activeModal = null;
+  if (action === 'open-edit') state.activeModal = 'edit';
+  if (action === 'go-design') { state.currentScreen = 'design'; state.activeModal = null; }
+  if (action === 'go-reach') { state.currentScreen = 'reach'; state.activeModal = null; }
+  if (action === 'open-mle') { state.mleStep = 1; state.activeModal = 'mle'; }
+  if (action === 'mle-next') state.mleStep = Math.min(4, state.mleStep + 1);
+  if (action === 'mle-back') state.mleStep = Math.max(1, state.mleStep - 1);
+  if (action === 'mle-done') { state.mleApplied = true; state.activeModal = null; showToast('Translation Assist changes applied. Language drafts are ready for reviewer assignment.'); }
+  if (action === 'open-assign') { state.assignStep = 1; state.activeModal = 'assign'; }
+  if (action === 'assign-next') state.assignStep = Math.min(4, state.assignStep + 1);
+  if (action === 'assign-back') state.assignStep = Math.max(1, state.assignStep - 1);
+  if (action === 'assign-done') assignReviewers();
+  if (action === 'open-progress') { state.currentScreen = 'reach'; state.activeModal = 'progress'; }
+  if (action === 'toast-reminder') showToast('Reminder sent to assigned reviewers.');
+  if (action === 'approve-review') approveCurrent();
+  if (action === 'reject-review') rejectCurrent();
+  if (action === 'submit-review') submitReview();
+  if (action === 'reset') resetState();
+  if (action === 'complete-all') completeAll();
+  render();
+}
 
-  function prevStep(min = 1) {
-    state.modalStep = Math.max(min, state.modalStep - 1);
-    render();
-  }
-
-  function goToDesign() {
-    state.currentScreen = "design";
-    closeModal();
-  }
-
-  function goToReach() {
-    state.currentScreen = "reach";
-    state.reviewerMode = false;
-    state.reviewerLanguage = null;
-    closeModal();
-  }
-
-  function assignReviewers() {
-    // Update language statuses
-    const selected = state.selectedLanguages.slice();
-    if (selected.includes("frCA")) state.languages.frCA.status = "In Review";
-    if (selected.includes("esLA")) state.languages.esLA.status = "In Review";
-
-    state.reviewersAssigned = true;
-    state.publishingLock = state.preventPublishUntilApproved;
-
-    closeModal();
-    toast("Reviewers assigned successfully. French and Spanish are now In Review.", "success");
-  }
-
-  function openReviewer(langCode) {
-    state.currentScreen = "reviewer";
-    state.reviewerMode = true;
-    state.reviewerLanguage = langCode;
-    closeModal();
-  }
-
-  function submitCurrentReview() {
-    const langCode = state.reviewerLanguage;
-    const lang = state.languages[langCode];
-    if (!lang) return;
-
-    if (lang.review.decision === "approve") {
-      lang.approved = 1;
-      lang.rejected = 0;
-      lang.comments = 0;
-      lang.status = "Approved";
-    } else if (lang.review.decision === "reject") {
-      lang.approved = 0;
-      lang.rejected = 1;
-      lang.comments = lang.review.comment.trim() ? 1 : 0;
-      lang.status = "Changes Requested";
-    }
-
-    lang.review.submitted = true;
-
-    // If all selected languages approved, show final completion toast
-    const allApproved = state.languages.frCA.status === "Approved" && state.languages.esLA.status === "Approved";
-    if (allApproved) {
-      toast("All reviews approved.", "success");
-    } else {
-      toast("Review submitted successfully.", "success");
-    }
-
-    // Show success modal then return to progress
-    state.activeModal = "submitSuccess";
-    state.modalStep = 1;
-    render();
-  }
-
-  function returnToProgressModal() {
-    // Return to Review Progress modal
-    state.currentScreen = "design"; // admin context by default after submission
-    state.reviewerMode = false;
-    state.reviewerLanguage = null;
-    state.activeModal = "reviewProgress";
-    state.modalStep = 1;
-
-    // Update Reach screen badge states if both approved
-    if (state.languages.frCA.status === "Approved") {
-      // nothing else required; pill display shows "Review Approved"
-    }
-    if (state.languages.esLA.status === "Approved") {
-      // nothing else required
-    }
-
-    render();
-  }
-
-  function resetDemo() {
-    state = initialState();
-    toast("Demo reset.", "info");
-    render();
-  }
-
-  function completeAllReviews() {
-    // Mark both approved
-    ["frCA", "esLA"].forEach((code) => {
-      const lang = state.languages[code];
-      lang.review.decision = "approve";
-      lang.review.comment = "";
-      lang.review.submitted = true;
-      lang.approved = 1;
-      lang.rejected = 0;
-      lang.comments = 0;
-      lang.status = "Approved";
-    });
-    state.reviewersAssigned = true;
-    toast("All reviews approved. Language drafts are ready for final admin review and publishing.", "success");
-    render();
-  }
-
-  // -----------------------------
-  // 9) Global event delegation
-  // -----------------------------
-  function handleAction(action, el) {
-    switch (action) {
-      // Demo bar
-      case "resetDemo":
-        resetDemo();
-        break;
-      case "jumpAdmin":
-        state.currentScreen = "design";
-        state.reviewerMode = false;
-        state.reviewerLanguage = null;
-        closeModal();
-        break;
-      case "jumpReviewer":
-        state.currentScreen = "reviewer";
-        state.reviewerMode = true;
-        state.reviewerLanguage = "frCA";
-        closeModal();
-        break;
-      case "completeAll":
-        completeAllReviews();
-        break;
-
-      // Reach / Design navigation
-      case "openEditCourseModal":
-        openModal("editCourse", 1);
-        break;
-      case "continueToDesign":
-        goToDesign();
-        break;
-      case "saveExit":
-        goToReach();
-        break;
-
-      // MLE modal
-      case "openMleReview":
-        openModal("mleReview", 1);
-        break;
-      case "nextModalStep":
-        nextStep(4);
-        break;
-      case "prevModalStep":
-        prevStep(1);
-        break;
-      case "mleDone":
-        // After MLE apply done, remain in Design and show notice
-        closeModal();
-        state.mleApplied = true;
-        toast("MLE changes applied. Language drafts are now in Draft state.", "success");
-        render();
-        break;
-
-      // Assign reviewers modal
-      case "openAssignReviewers":
-        openModal("assignReviewers", 1);
-        break;
-      case "toggleLanguageSelect": {
-        const code = el?.dataset?.lang;
-        if (!code) break;
-        const idx = state.selectedLanguages.indexOf(code);
-        if (idx >= 0) state.selectedLanguages.splice(idx, 1);
-        else state.selectedLanguages.push(code);
-        render();
-        break;
-      }
-      case "setReviewer": {
-        const code = el?.dataset?.lang;
-        const val = el?.value;
-        if (!code || !val) break;
-        const lang = state.languages[code];
-        lang.reviewer = val;
-
-        // Update role from option list
-        const found = lang.reviewerOptions.find((o) => o.name === val);
-        if (found) lang.reviewerRole = found.role;
-
-        render();
-        break;
-      }
-
-      case "toggleAllowComments":
-        state.allowComments = !!el.checked;
-        render();
-        break;
-      case "toggleRestrictAssigned":
-        state.restrictToAssigned = !!el.checked;
-        render();
-        break;
-      case "togglePreventPublish":
-        state.preventPublishUntilApproved = !!el.checked;
-        render();
-        break;
-      case "toggleNotifyEmail":
-        state.notifyEmail = !!el.checked;
-        render();
-        break;
-      case "toggleNotifyLink":
-        state.notifyLink = !!el.checked;
-        render();
-        break;
-      case "toggleNotifyOnComplete":
-        state.notifyOnComplete = !!el.checked;
-        render();
-        break;
-
-      case "setDueDate":
-        state.dueDate = el.value || "";
-        break;
-
-      case "setInstructions":
-        // handled in input listener
-        break;
-
-      case "assignReviewersConfirm":
-        assignReviewers();
-        break;
-
-      // Progress modal
-      case "openReviewProgress":
-        openModal("reviewProgress", 1);
-        break;
-      case "openReviewer": {
-        const code = el?.dataset?.lang;
-        if (!code) break;
-        openReviewer(code);
-        break;
-      }
-      case "sendReminder":
-        toast("Reminder sent to reviewers.", "info");
-        break;
-
-      case "openLanguageDrafts":
-        toast("Opening language drafts (demo).", "info");
-        break;
-
-      // Reviewer view interactions
-      case "backToProgress":
-        // return to progress modal (admin context)
-        state.currentScreen = "design";
-        openModal("reviewProgress", 1);
-        break;
-
-      case "reviewApprove": {
-        const code = state.reviewerLanguage;
-        const lang = state.languages[code];
-        lang.review.decision = "approve";
-        if (!state.allowComments) lang.review.comment = "";
-        render();
-        break;
-      }
-
-      case "reviewReject": {
-        const code = state.reviewerLanguage;
-        const lang = state.languages[code];
-        lang.review.decision = "reject";
-        render();
-        break;
-      }
-
-      case "reviewComment":
-        // handled by input listener
-        break;
-
-      case "submitReview":
-        submitCurrentReview();
-        break;
-
-      // Submit success
-      case "returnToProgress":
-        returnToProgressModal();
-        break;
-
-      // Generic modal close
-      case "closeModal":
-        closeModal();
-        break;
-
-      case "closeModalBackdrop":
-        closeModal();
-        break;
-
-      // No-ops
-      case "noop":
-      default:
-        // intentionally do nothing
-        break;
-    }
-  }
-
-  document.addEventListener("click", (e) => {
-    const actionEl = e.target.closest("[data-action]");
-    if (!actionEl) return;
-    const action = actionEl.dataset.action;
-    handleAction(action, actionEl);
+function assignReviewers() {
+  state.reviewersAssigned = true;
+  Object.values(state.languages).forEach(lang => {
+    if (lang.status === 'Not assigned') lang.status = 'In Review';
   });
+  state.activeModal = null;
+  showToast('Reviewers assigned successfully. French and Spanish are now In Review.');
+}
 
-  // Handle textarea/input changes with delegation
-  document.addEventListener("input", (e) => {
-    const el = e.target;
-    const action = el?.dataset?.action;
-    if (!action) return;
+function approveCurrent() {
+  const lang = state.languages[state.activeReviewerLang];
+  lang.approved = 1; lang.rejected = 0; lang.comments = 0; lang.status = 'Approved';
+  state.reviewerDecision = 'approved';
+}
 
-    if (action === "setInstructions") {
-      state.instructions = el.value;
-      return;
-    }
+function rejectCurrent() {
+  const lang = state.languages[state.activeReviewerLang];
+  lang.approved = 0; lang.rejected = 1; lang.comments = state.reviewerComment.trim() ? 1 : 0; lang.status = 'Changes Requested';
+  state.reviewerDecision = 'rejected';
+  if (!state.reviewerComment.trim()) showToast('Add a comment before submitting a rejected review.');
+}
 
-    if (action === "reviewComment") {
-      const code = state.reviewerLanguage;
-      const lang = state.languages[code];
-      lang.review.comment = el.value;
-      // Re-render to enable submit button when rejecting + comment exists
-      render();
-      return;
-    }
-  });
+function submitReview() {
+  const lang = state.languages[state.activeReviewerLang];
+  if (lang.rejected && !state.reviewerComment.trim()) { showToast('Comment required for rejection.'); return; }
+  state.activeModal = 'submitted';
+  state.currentScreen = 'reach';
+  state.reviewerComment = '';
+  showToast(allApproved() ? 'All reviews approved.' : 'Review submitted successfully.');
+}
 
-  // -----------------------------
-  // 10) Init
-  // -----------------------------
-  window.addEventListener("DOMContentLoaded", () => {
-    ensureBaseScaffold();
-    render();
+function allApproved() {
+  return Object.values(state.languages).every(l => l.status === 'Approved');
+}
 
-    // Small initial tip toast (optional)
-    // toast("Demo ready: Click English edit icon to start.", "info", 3500);
-  });
-})();
+function completeAll() {
+  state.reviewersAssigned = true;
+  Object.values(state.languages).forEach(l => { l.status = 'Approved'; l.approved = 1; l.rejected = 0; l.comments = 0; });
+  showToast('All reviews approved.');
+}
+
+function resetState() {
+  state.currentScreen = 'reach'; state.mleStep = 1; state.assignStep = 1; state.reviewersAssigned = false; state.activeModal = null; state.activeReviewerLang = null; state.reviewerDecision = null; state.reviewerComment = '';
+  state.languages.frCA.status = 'Not assigned'; state.languages.frCA.approved = 0; state.languages.frCA.rejected = 0; state.languages.frCA.comments = 0; state.languages.frCA.reviewer = 'Marie Dubois'; state.languages.frCA.reviewerRole = 'Legal Reviewer';
+  state.languages.esLA.status = 'Not assigned'; state.languages.esLA.approved = 0; state.languages.esLA.rejected = 0; state.languages.esLA.comments = 0; state.languages.esLA.reviewer = 'Carlos Rivera'; state.languages.esLA.reviewerRole = 'Regional SME';
+  showToast('Demo reset.');
+}
+
+function showToast(message) {
+  const node = document.createElement('div');
+  node.className = 'toast';
+  node.textContent = message;
+  toastRoot.appendChild(node);
+  setTimeout(() => node.remove(), 3200);
+}
+
+render();
