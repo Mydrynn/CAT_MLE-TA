@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Translation Assist Reviewer Workflow Mockup</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- App shell -->
+  <div id="app">
+    <!-- Left rail (Reach-style) -->
+    <aside class="rail" aria-label="Reach sidebar">
+      <div class="rail__brand">R</div>
+      <button class="rail__btn active" title="Content Manager" aria-label="Content Manager">
+        <span class="ico">▦</span>
+      </button>
+      <button class="rail__btn" title="Catalog" aria-label="Catalog"><span class="ico">≡</span></button>
+      <button class="rail__btn" title="Reports" aria-label="Reports"><span class="ico">▤</span></button>
+      <button class="rail__btn" title="Settings" aria-label="Settings"><span class="ico">⚙</span></button>
+      <div class="rail__spacer"></div>
+      <button class="rail__btn" title="Help" aria-label="Help"><span class="ico">?</span></button>
+    </aside>
+
+    <!-- Main column -->
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar__left">
+          <div id="topbarBrand" class="topbar__logo">Reach</div>
+          <div id="topbarContext" class="topbar__context">Content Manager</div>
+        </div>
+
+        <div class="topbar__right">
+          <button class="linkbtn" id="btnCustomizations">Content Customizations</button>
+          <button class="iconbtn" title="Settings" aria-label="Settings">⚙</button>
+          <button class="linkbtn" title="Help" aria-label="Help">Help</button>
+          <div class="userpill">
+            <div class="userpill__name">Ed Hickey (Super User)</div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Screen root -->
+      <main id="screenRoot" class="screen" aria-live="polite"></main>
+    </div>
+
+    <!-- Floating help/chat button -->
+    <button class="chatfab" title="Help" aria-label="Help">
+      <span class="chatfab__dot"></span>
+      💬
+    </button>
+
+    <!-- Toasts -->
+    <div id="toastHost" class="toastHost" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Modal host -->
+    <div id="modalHost" class="modalHost" aria-hidden="true"></div>
+
+    <!-- Demo control bar -->
+    <div class="demoBar" role="region" aria-label="Demo controls">
+      <div class="demoBar__title">Demo controls</div>
+      <div class="demoBar__btns">
+        <button class="btn btn--ghost" data-action="resetDemopAdminbtn btn--outline" data-action="jumpReviewers="btn btn--primary" data-action="completeAllReviews </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+``
