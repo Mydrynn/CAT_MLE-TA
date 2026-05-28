@@ -695,6 +695,55 @@
 	width:540px;
 }
 
+.reviewer-modal--manage{
+	max-height:92vh;
+	padding:24px;
+	width:760px;
+}
+
+.reviewer-modal--manage .reviewer-modal__header{
+	margin-bottom:18px;
+}
+
+.reviewer-modal--manage .reviewer-modal__tip{
+	margin-bottom:18px;
+	padding:12px 14px;
+}
+
+.reviewer-modal--manage .reviewer-create-form{
+	gap:18px;
+	margin-bottom:18px;
+}
+
+.reviewer-modal--manage .reviewer-create-form__row{
+	gap:14px;
+}
+
+.reviewer-modal--manage .reviewer-create-form__field{
+	gap:8px;
+}
+
+.reviewer-modal--manage .reviewer-create-form__label{
+	font-size:14px;
+}
+
+.reviewer-modal--manage .reviewer-create-form__input,
+.reviewer-modal--manage .reviewer-create-form__select{
+	min-height:36px;
+	padding:11px 12px;
+}
+
+.reviewer-modal--manage .reviewer-create-form__footer{
+	gap:10px;
+	margin-top:8px;
+}
+
+.reviewer-modal--manage .reviewer-language-picker{
+	gap:10px;
+	max-height:170px;
+	padding:12px;
+}
+
 .reviewer-modal__header{
 	align-items:center;
 	display:flex;
