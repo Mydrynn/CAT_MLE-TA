@@ -434,18 +434,15 @@
 
 .translation-widget__accuracy{
 	align-items:center;
-	border:1px solid transparent;
-	border-radius:999px;
+	background:transparent;
+	border:0;
+	border-radius:0;
 	cursor:help;
 	display:inline-flex;
-	font-family:'Proxima Nova',sans-serif;
-	font-size:11px;
-	font-weight:700;
-	letter-spacing:0.25px;
-	line-height:1;
-	padding:5px 8px;
+	justify-content:center;
+	line-height:0;
+	padding:0;
 	position:relative;
-	text-transform:uppercase;
 }
 
 .translation-widget__accuracy:focus{
@@ -454,26 +451,22 @@
 }
 
 .translation-widget__accuracy--bronze{
-	background:#f4e2cd;
-	border-color:#d5b38e;
 	color:#7d4e24;
 }
 
 .translation-widget__accuracy--silver{
-	background:#e9edf1;
-	border-color:#b7c0c9;
 	color:#4f5f70;
 }
 
 .translation-widget__accuracy--gold{
-	background:#f6efcc;
-	border-color:#d8c472;
 	color:#7f6511;
 }
 
 .translation-widget__accuracy-icon{
-	display:inline-block;
-	margin-right:4px;
+	display:block;
+	height:26.4px;
+	object-fit:contain;
+	width:26.4px;
 }
 
 .translation-widget__accuracy-tooltip{
@@ -1062,6 +1055,23 @@ input.reviewer-modal__search:focus{
 	display:inline-flex;
 }
 
+.reviewer-icon-btn.is-pulsing{
+	animation:reviewerIconBorderFlash 0.6s ease-in-out 2;
+}
+
+@keyframes reviewerIconBorderFlash{
+	0%, 100%{
+		background:transparent;
+		border-color:#c3cbcb;
+		box-shadow:0 0 0 0 rgba(0, 102, 51, 0);
+	}
+	50%{
+		background:#e8f4ee;
+		border-color:#006633;
+		box-shadow:0 0 0 2px rgba(0, 102, 51, 0.55);
+	}
+}
+
 .reviewer-icon-btn:hover{
 	background:#e7eaea;
 	border-color:#879797;
@@ -1079,6 +1089,29 @@ input.reviewer-modal__search:focus{
 	border-radius:2px;
 	margin-bottom:14px;
 	padding:16px;
+}
+
+.reviewer-email-warning{
+	background:#fff;
+	border:1px solid #dbe0e0;
+	border-radius:2px;
+	margin-bottom:14px;
+	padding:16px;
+}
+
+.reviewer-item--email-target{
+	animation:reviewerRowBorderFlash 0.65s ease-in-out 2;
+}
+
+@keyframes reviewerRowBorderFlash{
+	0%, 100%{
+		border-color:#dbe0e0;
+		box-shadow:0 0 0 0 rgba(0, 102, 51, 0);
+	}
+	50%{
+		border-color:#006633;
+		box-shadow:0 0 0 2px rgba(0, 102, 51, 0.5);
+	}
 }
 
 .reviewer-delete-confirm__msg{

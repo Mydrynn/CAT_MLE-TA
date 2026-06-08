@@ -17,6 +17,8 @@
     var reviewerEmailSentOverlay = null;
     var reviewerEmailTemplateOverlay = null;
     var activeReviewerEmailContext = null;
+    var activeReviewerEmailRecipientName = '';
+    var initialSelectedReviewerNames = [];
     var reviewerEmailTemplate = {
       subject: 'Review Request for {{CourseName}}',
       body: 'Hi {{ReviewerFirstName}},\n\n' +
@@ -83,6 +85,36 @@
         captureExpandedLanguageCards();
         renderTranslationWidget(true);
       }
+
+      if (manageReviewerModalOverlay && typeof manageReviewerModalOverlay.__refreshFromCatalog === 'function') {
+        manageReviewerModalOverlay.__refreshFromCatalog();
+      }
+    }
+
+    function ensureEmailedReviewersMap() {
+      if (!emailedReviewersByLanguage) {
+        emailedReviewersByLanguage = createEmptyAssignmentsMap();
+      }
+    }
+
+    function markReviewerAsEmailed(languageLabel, reviewerName) {
+      if (!languageLabel || !reviewerName) {
+        return;
+      }
+
+      ensureEmailedReviewersMap();
+      if (!emailedReviewersByLanguage[languageLabel]) {
+        emailedReviewersByLanguage[languageLabel] = [];
+      }
+
+      if (emailedReviewersByLanguage[languageLabel].indexOf(reviewerName) === -1) {
+        emailedReviewersByLanguage[languageLabel].push(reviewerName);
+      }
+    }
+
+    function hasReviewerBeenEmailed(languageLabel, reviewerName) {
+      ensureEmailedReviewersMap();
+      return Boolean(languageLabel && reviewerName) && (emailedReviewersByLanguage[languageLabel] || []).indexOf(reviewerName) !== -1;
     }
 
     function getFirstNameFromFullName(fullName) {
@@ -320,6 +352,7 @@
         openReviewerEmailTemplateDialog();
       });
       reviewerEmailComposerOverlay.querySelector('.reviewer-email-modal__send').addEventListener('click', function () {
+        markReviewerAsEmailed(activeReviewerLanguage, activeReviewerEmailRecipientName);
         closeReviewerEmailComposer();
         openReviewerEmailSentDialog();
       });
@@ -397,6 +430,7 @@
 
     function openReviewerEmailComposer(fullName) {
       var overlay = ensureReviewerEmailComposer();
+      activeReviewerEmailRecipientName = fullName || '';
       activeReviewerEmailContext = buildReviewerEmailContext(fullName);
       applyTemplateToEmailComposer(activeReviewerEmailContext);
 
@@ -540,7 +574,14 @@
           '</div>' +
           '<div class="reviewer-modal__footer">' +
             '<button type="button" class="reviewer-btn cancel">Cancel</button>' +
-            '<button type="button" class="reviewer-btn assign">Assign Reviewer</button>' +
+            '<button type="button" class="reviewer-btn assign">Update</button>' +
+          '</div>' +
+          '<div class="reviewer-email-warning" style="display:none">' +
+            '<p class="reviewer-delete-confirm__msg">You\'ve added a new reviewer did you want to email them to let them know.</p>' +
+            '<div class="reviewer-create-form__footer">' +
+              '<button type="button" class="reviewer-btn cancel reviewer-email-warning__no">No</button>' +
+              '<button type="button" class="reviewer-btn assign reviewer-email-warning__yes">Yes</button>' +
+            '</div>' +
           '</div>' +
         '</div>';
 
@@ -577,8 +618,10 @@
       var reviewerList = reviewerModalOverlay.querySelector('.reviewer-list');
       var modalFooter = reviewerModalOverlay.querySelector('.reviewer-modal__footer');
       var modalTip = reviewerModalOverlay.querySelector('.reviewer-modal__tip');
+      var emailWarning = reviewerModalOverlay.querySelector('.reviewer-email-warning');
       var pendingDeleteItem = null;
       var editingItem = null;
+      var pendingEmailReviewerNames = [];
 
       var rcfFirstName   = reviewerModalOverlay.querySelector('.rcf-first-name');
       var rcfLastName    = reviewerModalOverlay.querySelector('.rcf-last-name');
@@ -643,10 +686,12 @@
         if (createForm)   { createForm.style.display = 'none'; }
         if (editForm)     { editForm.style.display = 'none'; }
         if (deleteConfirm){ deleteConfirm.style.display = 'none'; }
+        if (emailWarning) { emailWarning.style.display = 'none'; }
         if (modalTip)     { modalTip.style.display = ''; }
         if (searchInput)  { searchInput.style.display = ''; }
         if (reviewerList) { reviewerList.style.display = ''; }
         if (modalFooter)  { modalFooter.style.display = ''; }
+        pendingEmailReviewerNames = [];
       }
 
       function hideListView() {
@@ -654,6 +699,46 @@
         if (searchInput)  { searchInput.style.display = 'none'; }
         if (reviewerList) { reviewerList.style.display = 'none'; }
         if (modalFooter)  { modalFooter.style.display = 'none'; }
+      }
+
+      function highlightReviewersForEmail(reviewerNames) {
+        if (!reviewerList || !reviewerNames || reviewerNames.length === 0) {
+          return;
+        }
+
+        reviewerList.querySelectorAll('.reviewer-item').forEach(function (item) {
+          var nameNode = item.querySelector('.reviewer-name');
+          var emailBtn = item.querySelector('.reviewer-email-btn');
+          var reviewerName = nameNode ? nameNode.textContent.trim() : '';
+          if (reviewerNames.indexOf(reviewerName) === -1) {
+            return;
+          }
+
+          item.classList.remove('reviewer-item--email-target');
+          void item.offsetWidth;
+          item.classList.add('reviewer-item--email-target');
+
+          if (emailBtn) {
+            emailBtn.classList.remove('is-pulsing');
+            void emailBtn.offsetWidth;
+            emailBtn.classList.add('is-pulsing');
+          }
+
+          setTimeout(function () {
+            item.classList.remove('reviewer-item--email-target');
+            if (emailBtn) {
+              emailBtn.classList.remove('is-pulsing');
+            }
+          }, 1300);
+        });
+      }
+
+      function showEmailWarning(reviewerNames) {
+        pendingEmailReviewerNames = (reviewerNames || []).slice();
+        hideListView();
+        if (emailWarning) {
+          emailWarning.style.display = '';
+        }
       }
 
       function showCreateForm() {
@@ -802,6 +887,22 @@
         });
       }
 
+      var emailWarningNoBtn = reviewerModalOverlay.querySelector('.reviewer-email-warning__no');
+      if (emailWarningNoBtn) {
+        emailWarningNoBtn.addEventListener('click', function () {
+          closeReviewerModal();
+        });
+      }
+
+      var emailWarningYesBtn = reviewerModalOverlay.querySelector('.reviewer-email-warning__yes');
+      if (emailWarningYesBtn) {
+        emailWarningYesBtn.addEventListener('click', function () {
+          var reviewersToHighlight = pendingEmailReviewerNames.slice();
+          showListView();
+          highlightReviewersForEmail(reviewersToHighlight);
+        });
+      }
+
       reviewerModalOverlay.addEventListener('click', function (event) {
         var emailBtn = event.target.closest('.reviewer-email-btn');
         if (emailBtn) {
@@ -868,6 +969,9 @@
       }
 
       reviewerModalOverlay.querySelectorAll('.reviewer-item').forEach(bindReviewerItemEvents);
+
+      reviewerModalOverlay.__showNewReviewerEmailWarning = showEmailWarning;
+      reviewerModalOverlay.__resetState = showListView;
 
       return reviewerModalOverlay;
     }
@@ -1060,12 +1164,25 @@
         showManageList();
       });
 
+      manageReviewerModalOverlay.__refreshFromCatalog = function () {
+        if (!search) {
+          return;
+        }
+
+        showManageList();
+        search.value = '';
+        renderManageList('');
+      };
+
       renderManageList('');
       return manageReviewerModalOverlay;
     }
 
     function openManageReviewerModal() {
       var overlay = ensureManageReviewerModal();
+      if (typeof overlay.__refreshFromCatalog === 'function') {
+        overlay.__refreshFromCatalog();
+      }
       overlay.classList.add('is-visible');
     }
 
@@ -1107,9 +1224,14 @@
     function openReviewerModal(languageLabel) {
       var overlay = ensureReviewerModal();
       activeReviewerLanguage = languageLabel;
+      initialSelectedReviewerNames = (assignedReviewersByLanguage[languageLabel] || []).slice();
       var title = overlay.querySelector('#reviewer-modal-title');
       var searchField = overlay.querySelector('.reviewer-modal__search');
       var listNode = overlay.querySelector('.reviewer-list');
+
+      if (typeof overlay.__resetState === 'function') {
+        overlay.__resetState();
+      }
 
       if (listNode) {
         var visibleReviewers = reviewerCatalog.filter(function (reviewer) {
@@ -1235,6 +1357,7 @@
     }
 
     var assignedReviewersByLanguage = createDefaultAssignedReviewersMap();
+    var emailedReviewersByLanguage = createEmptyAssignmentsMap();
     syncAssignedFromCatalog();
     var expandedLanguageCards = {};
 
@@ -1315,21 +1438,21 @@
       var accuracyByLanguage = {
         'CA - French': {
           label: 'Bronze',
-          icon: '◆',
+          iconPath: 'assets/accuracy-bronze.svg',
           scaleClass: 'bronze',
-          tooltip: 'This indicates a Bronze level of confidence in the AI Translation. At this level we recommend a detailed review by a linguist'
+          tooltip: 'Best suited for smaller, straightforward updates. Linguist or SME review is recommended for larger edits, new pages, complex content, or anything compliance-sensitive.'
         },
         'LA - Spanish': {
           label: 'Silver',
-          icon: '☆',
+          iconPath: 'assets/accuracy-silver.svg',
           scaleClass: 'silver',
-          tooltip: 'This indicates a Silver level of confidence in the AI Translation. At this level we recommend a detailed review by a linguist if more than simple changes are made'
+          tooltip: 'Best suited for routine updates and moderate content changes. Review is recommended for larger edits, new pages, nuanced wording, or client-specific terminology.'
         },
         'DE - German': {
           label: 'Gold',
-          icon: '★',
+          iconPath: 'assets/accuracy-gold.svg',
           scaleClass: 'gold',
-          tooltip: 'This indicates a Gold level of confidence in the AI Translation. At this level the translation could be used as is but it\'s alwsys good to have a review by a linguist'
+          tooltip: 'Best suited for most translation scenarios. Translations are expected to be strong for standard updates, larger edits, and new content, with light review recommended for sensitive or high-risk material.'
         }
       };
 
@@ -1345,8 +1468,7 @@
             '<span>' + languageLabel + '</span>' +
             '<div class="translation-widget__row-right">' +
               '<span class="translation-widget__accuracy translation-widget__accuracy--' + accuracy.scaleClass + '" tabindex="0" aria-label="' + accuracy.tooltip + '">' +
-                '<span class="translation-widget__accuracy-icon">' + accuracy.icon + '</span>' +
-                '<span class="translation-widget__accuracy-label">' + accuracy.label + '</span>' +
+                '<img class="translation-widget__accuracy-icon" src="' + accuracy.iconPath + '" alt="' + accuracy.label + ' confidence level">' +
                 '<span class="translation-widget__accuracy-tooltip" role="tooltip">' + accuracy.tooltip + '</span>' +
               '</span>' +
               '<button type="button" class="mini-switch language-toggle is-on" aria-pressed="true"><span class="mini-switch__text">On</span></button>' +
@@ -1356,7 +1478,6 @@
             '<div class="translation-widget__notice">' +
               '<span aria-hidden="true">!</span>' +
               '<span>There are <strong>8</strong> translations edits need to be verified.</span>' +
-              '<a href="#" class="translation-widget__notice-link">View Status</a>' +
             '</div>' +
             renderReviewerActions(languageLabel) +
           '</div>' +
@@ -1477,9 +1598,24 @@
       assignButton.addEventListener('click', function () {
         if (activeReviewerLanguage) {
           captureExpandedLanguageCards();
-          assignedReviewersByLanguage[activeReviewerLanguage] = getSelectedReviewersFromModal();
+          var selectedReviewers = getSelectedReviewersFromModal();
+          var newlySelectedReviewers = selectedReviewers.filter(function (name) {
+            return initialSelectedReviewerNames.indexOf(name) === -1;
+          });
+
+          assignedReviewersByLanguage[activeReviewerLanguage] = selectedReviewers;
+
           if (translationWidget && translationWidget.style.display !== 'none') {
             renderTranslationWidget(true);
+          }
+
+          var newlySelectedWithoutEmail = newlySelectedReviewers.filter(function (name) {
+            return !hasReviewerBeenEmailed(activeReviewerLanguage, name);
+          });
+
+          if (newlySelectedWithoutEmail.length > 0 && typeof overlay.__showNewReviewerEmailWarning === 'function') {
+            overlay.__showNewReviewerEmailWarning(newlySelectedWithoutEmail);
+            return;
           }
         }
         closeReviewerModal();

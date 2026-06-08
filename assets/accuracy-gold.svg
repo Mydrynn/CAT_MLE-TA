@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Gold confidence star badge with glint">
+  <defs>
+    <linearGradient id="gold-main" x1="120" y1="90" x2="390" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff29a"/>
+      <stop offset="0.18" stop-color="#ffd64a"/>
+      <stop offset="0.45" stop-color="#e2a51d"/>
+      <stop offset="0.75" stop-color="#c58413"/>
+      <stop offset="1" stop-color="#7b4a07"/>
+    </linearGradient>
+    <linearGradient id="gold-light" x1="80" y1="110" x2="270" y2="270" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fffbd0"/>
+      <stop offset="0.42" stop-color="#fff071"/>
+      <stop offset="1" stop-color="#d99a18"/>
+    </linearGradient>
+    <linearGradient id="gold-mid" x1="240" y1="120" x2="425" y2="370" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffef8c"/>
+      <stop offset="0.55" stop-color="#dca21f"/>
+      <stop offset="1" stop-color="#9a610b"/>
+    </linearGradient>
+    <linearGradient id="gold-dark" x1="200" y1="190" x2="330" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e0a420"/>
+      <stop offset="0.7" stop-color="#b46f09"/>
+      <stop offset="1" stop-color="#613802"/>
+    </linearGradient>
+    <radialGradient id="glint-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fffef2" stop-opacity="1"/>
+      <stop offset="0.45" stop-color="#fff9a8" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#fff3a0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Transparent background intentionally omitted -->
+
+  <g filter="url(#soft-shadow)">
+    <!-- Overall star silhouette -->
+    <path d="M256 52 L302 190 L448 190 L330 280 L376 424 L256 336 L136 424 L182 280 L64 190 L210 190 Z"
+          fill="url(#gold-main)" stroke="#4f2d00" stroke-width="8" stroke-linejoin="round"/>
+
+    <!-- Beveled gold facets -->
+    <path d="M256 52 L302 190 L256 256 Z" fill="#fff0a3"/>
+    <path d="M256 52 L210 190 L256 256 Z" fill="#d18a10"/>
+    <path d="M64 190 L210 190 L256 256 Z" fill="url(#gold-light)"/>
+    <path d="M448 190 L302 190 L256 256 Z" fill="#efbd37"/>
+    <path d="M182 280 L64 190 L256 256 Z" fill="#c9870d"/>
+    <path d="M330 280 L448 190 L256 256 Z" fill="url(#gold-mid)"/>
+    <path d="M136 424 L182 280 L256 256 Z" fill="#d99a1c"/>
+    <path d="M376 424 L330 280 L256 256 Z" fill="url(#gold-dark)"/>
+    <path d="M256 336 L136 424 L256 256 Z" fill="#c7830c"/>
+    <path d="M256 336 L376 424 L256 256 Z" fill="#e4aa24"/>
+
+    <!-- Crisp bevel lines -->
+    <path d="M256 52 L256 256 M210 190 L256 256 M302 190 L256 256 M64 190 L256 256 M448 190 L256 256 M182 280 L256 256 M330 280 L256 256 M136 424 L256 256 M376 424 L256 256 M256 336 L256 256"
+          stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"/>
+    <path d="M256 52 L302 190 L448 190 L330 280 L376 424 L256 336 L136 424 L182 280 L64 190 L210 190 Z"
+          fill="none" stroke="#f9d15a" stroke-width="3" stroke-linejoin="round" opacity="0.9"/>
+  </g>
+
+  <!-- Glint / sparkle to distinguish gold -->
+  <g filter="url(#glow)">
+    <circle cx="344" cy="139" r="51" fill="url(#glint-glow)" opacity="0.9"/>
+    <path d="M344 56 L350 126 L426 137 L350 143 L344 221 L338 143 L260 137 L338 126 Z"
+          fill="#fffde8" opacity="0.95"/>
+    <path d="M344 82 L347 132 L397 137 L347 141 L344 192 L341 141 L291 137 L341 132 Z"
+          fill="#ffffff" opacity="0.98"/>
+  </g>
+
+  <!-- Small reflected highlights on star surface -->
+  <path d="M232 156 L256 68 L281 195 L257 232 Z" fill="#ffffff" opacity="0.38"/>
+  <path d="M395 205 L435 196 L394 229 Z" fill="#ffffff" opacity="0.48"/>
+</svg>
