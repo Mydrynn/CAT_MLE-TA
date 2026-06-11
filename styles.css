@@ -434,15 +434,19 @@
 
 .translation-widget__accuracy{
 	align-items:center;
-	background:transparent;
-	border:0;
-	border-radius:0;
+	border:1px solid transparent;
+	border-radius:999px;
+	color:#4f3216;
 	cursor:help;
 	display:inline-flex;
+	font-family:'Proxima Nova',sans-serif;
+	font-size:12px;
+	font-weight:600;
 	justify-content:center;
-	line-height:0;
-	padding:0;
+	line-height:1;
+	padding:4px 12px;
 	position:relative;
+	white-space:nowrap;
 }
 
 .translation-widget__accuracy:focus{
@@ -450,23 +454,26 @@
 	outline-offset:1px;
 }
 
-.translation-widget__accuracy--bronze{
-	color:#7d4e24;
+.translation-widget__accuracy--standard{
+	background:#9c6a3a;
+	border-color:#8e5e2f;
+	color:#fffaf3;
 }
 
-.translation-widget__accuracy--silver{
-	color:#4f5f70;
+.translation-widget__accuracy--enhanced{
+	background:#b9854c;
+	border-color:#aa7740;
+	color:#fffaf3;
 }
 
-.translation-widget__accuracy--gold{
-	color:#7f6511;
+.translation-widget__accuracy--advanced{
+	background:#cf9a60;
+	border-color:#c08a52;
+	color:#fffaf3;
 }
 
-.translation-widget__accuracy-icon{
+.translation-widget__accuracy-label{
 	display:block;
-	height:26.4px;
-	object-fit:contain;
-	width:26.4px;
 }
 
 .translation-widget__accuracy-tooltip{
@@ -480,9 +487,9 @@
 	left:auto;
 	line-height:16px;
 	max-width:min(420px, calc(100vw - 24px));
-	min-width:320px;
+	min-width:340px;
 	opacity:0;
-	padding:6px 12px;
+	padding:10px 12px;
 	pointer-events:none;
 	position:absolute;
 	right:0;
@@ -490,7 +497,7 @@
 	transform:translateY(4px);
 	transition:opacity .18s ease, transform .18s ease;
 	visibility:hidden;
-	width:360px;
+	width:380px;
 	white-space:normal;
 	z-index:10000;
 }

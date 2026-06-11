@@ -1437,22 +1437,19 @@
     function getLanguageAccuracyMeta(languageLabel) {
       var accuracyByLanguage = {
         'CA - French': {
-          label: 'Bronze',
-          iconPath: 'assets/accuracy-bronze.svg',
-          scaleClass: 'bronze',
-          tooltip: 'Best suited for smaller, straightforward updates. Linguist or SME review is recommended for larger edits, new pages, complex content, or anything compliance-sensitive.'
+          label: 'Standard',
+          scaleClass: 'standard',
+          tooltip: 'Bronze Standard translations are intended to provide a foundation for understanding and review. In-country reviewers should expect to make substantial edits to ensure linguistic accuracy, consistency, and readability before publication.'
         },
         'LA - Spanish': {
-          label: 'Silver',
-          iconPath: 'assets/accuracy-silver.svg',
-          scaleClass: 'silver',
-          tooltip: 'Best suited for routine updates and moderate content changes. Review is recommended for larger edits, new pages, nuanced wording, or client-specific terminology.'
+          label: 'Enhanced',
+          scaleClass: 'enhanced',
+          tooltip: 'Silver Standard translations provide a balance between quality, speed, and cost. In-country reviewers should expect to make moderate edits to improve phrasing, terminology consistency, and readability while preserving the overall meaning of the source content.'
         },
         'DE - German': {
-          label: 'Gold',
-          iconPath: 'assets/accuracy-gold.svg',
-          scaleClass: 'gold',
-          tooltip: 'Best suited for most translation scenarios. Translations are expected to be strong for standard updates, larger edits, and new content, with light review recommended for sensitive or high-risk material.'
+          label: 'Advanced',
+          scaleClass: 'advanced',
+          tooltip: 'Gold Standard translations require minimal review and correction by in-country reviewers. Content is expected to be largely publication-ready, with reviewers focusing primarily on validating terminology, cultural nuances, and business-specific preferences.'
         }
       };
 
@@ -1468,7 +1465,7 @@
             '<span>' + languageLabel + '</span>' +
             '<div class="translation-widget__row-right">' +
               '<span class="translation-widget__accuracy translation-widget__accuracy--' + accuracy.scaleClass + '" tabindex="0" aria-label="' + accuracy.tooltip + '">' +
-                '<img class="translation-widget__accuracy-icon" src="' + accuracy.iconPath + '" alt="' + accuracy.label + ' confidence level">' +
+                '<span class="translation-widget__accuracy-label">' + accuracy.label + '</span>' +
                 '<span class="translation-widget__accuracy-tooltip" role="tooltip">' + accuracy.tooltip + '</span>' +
               '</span>' +
               '<button type="button" class="mini-switch language-toggle is-on" aria-pressed="true"><span class="mini-switch__text">On</span></button>' +
