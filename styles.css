@@ -364,6 +364,15 @@
 	line-height:20px;
 }
 
+.translation-assist-note--warning{
+	background:#f6edd7;
+}
+
+.translation-assist-note__icon--warning{
+	border-color:#efab00;
+	color:#efab00;
+}
+
 .translation-widget{
 	display:flex;
 	flex-direction:column;
