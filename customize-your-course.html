@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CDesign – Text and Image</title>
+<style>
+  :root{--navy:#162e5c;--teal:#00a79f;--line:#cfd8da;--soft:#f3f6f6;--ink:#25333a;--muted:#6b777b}
+  *{box-sizing:border-box}
+  html,body{margin:0;font-family:"Proxima Nova","Segoe UI",Arial,sans-serif;color:var(--ink);background:#fff;font-size:14px}
+  button,input,textarea{font:inherit}
+  .top{height:136px;border-bottom:1px solid #c3cbcb;background:#fff;box-shadow:2px 2px 6px rgba(27,36,43,.16);position:relative;z-index:4}
+  .brand{position:absolute;left:36px;top:16px;width:130.5px;height:36px;line-height:1}
+  .account{position:absolute;right:34px;top:16px;height:34px;display:flex;align-items:center;gap:12px;color:#596469}
+  .lang{width:30px;height:30px;background:var(--teal);color:#fff;display:grid;place-items:center;font-size:14px;font-weight:600}
+  .account button{border:1px solid #c3cbcb;background:#f8faf9;color:#5f6a6a;height:32px;padding:0 14px;font-size:14px;font-weight:600;letter-spacing:.08px}
+  .account button.disabled{color:#aeb5b6;background:#f3f5f5}
+  .account .user{font-size:16px;color:#1b242b;font-weight:400;line-height:1}
+  .account .acct-icons{font-size:22px;color:#5f6a6a;line-height:1}
+  .mainnav{position:absolute;left:286px;right:232px;bottom:0;height:76px;display:flex;align-items:flex-end;gap:0;white-space:nowrap}
+  .mainnav a{color:#1b242b;text-decoration:none;font-size:18px;height:76px;padding:29px 24px 21px;display:flex;align-items:center;line-height:1;letter-spacing:.09px}
+  .mainnav a.active{font-weight:600;color:var(--navy);border-bottom:2px solid var(--navy)}
+  .chev{margin-left:10px;border:solid #607077;border-width:0 2px 2px 0;padding:4px;transform:rotate(45deg);margin-top:-6px}
+  .outline{border:2px solid var(--teal);color:var(--teal);height:32px;padding:0 12px;background:#fff;font-size:12px;font-weight:600;letter-spacing:1.28px;margin-left:14px;transform:translateY(-14px)}
+  .outline .btn-icon{font-size:13px;margin-right:7px;line-height:1}
+  .workspace{display:grid;grid-template-columns:204px minmax(920px,1fr) 20px}
+  .left{border-right:1px solid #cad3d4;background:#f4f5f5;min-height:1490px;position:relative}
+  .left-title{height:44px;padding:13px 13px;background:#fff;border-bottom:1px solid var(--line);font-weight:700}
+  .back{display:inline-grid;place-items:center;width:21px;height:21px;margin-right:7px;background:#e5f4f3;color:#568282;border-radius:2px}
+  .search{height:39px;padding:10px 10px;background:#f4f6f6;border-bottom:1px solid var(--line);color:#7b8588;display:flex;justify-content:space-between}
+  .magnify{width:14px;height:14px;border:2px solid #5f7075;border-radius:50%;position:relative}
+  .magnify:after{content:"";position:absolute;width:7px;border-top:2px solid #5f7075;right:-6px;bottom:-3px;transform:rotate(48deg)}
+  .tree{font-size:12px;overflow:hidden}
+  .tree-row{height:32px;display:flex;align-items:center;padding:0 10px;gap:6px;white-space:nowrap}
+  .tree-row.group{height:37px;font-size:13px;background:#f1f2f2}
+  .tree-row.group.first{background:#fff;height:38px}
+  .tree-row.indent{padding-left:40px}
+  .tree-row.selected{background:#dfedf7}
+  .file{width:11px;height:13px;background:#657273;border-radius:1px;position:relative;flex:0 0 auto}
+  .file:after{content:"";position:absolute;right:0;top:0;border-left:4px solid transparent;border-bottom:4px solid #f3f6f6}
+  .gridicon{font-size:19px;line-height:1}
+  .play{border:2px solid #27363b;border-radius:50%;width:16px;height:16px;display:grid;place-items:center;font-size:8px}
+  .ellipsis{overflow:hidden;text-overflow:ellipsis}
+  .right-strip{border-left:1px solid #cbd4d5;position:relative}
+  .right-strip .collapse{height:39px;background:#fff;display:grid;place-items:center;color:#668083}
+  .right-strip .plus{height:26px;background:var(--teal);color:#fff;font-size:21px;text-align:center}
+  .comment{margin-top:28px;width:20px;height:24px;background:#eee;border-radius:2px;position:relative}
+  .comment:after{content:"";position:absolute;bottom:-5px;left:3px;border-width:5px 5px 0 0;border-style:solid;border-color:#eee transparent transparent transparent}
+  .center{min-width:0}
+  .tools{height:44px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 17px;gap:28px;color:#596568}
+  .tool{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+  .tool.dim{color:#aeb5b6;font-weight:400}
+  .docicon{width:15px;height:18px;border:2px solid currentColor;position:relative}
+  .docicon:after{content:"";position:absolute;left:2px;right:2px;top:5px;border-top:2px solid currentColor;box-shadow:0 4px currentColor}
+  .preview{margin-left:auto;background:var(--teal);border:0;color:#fff;height:28px;padding:0 12px}
+  .page{padding:14px 25px 38px;position:relative}
+  .crumbline{display:flex;justify-content:space-between;margin:0 0 21px;font-size:12px}
+  h1{margin:0 0 18px;color:var(--navy);font-size:31px;font-weight:400;display:flex;gap:10px;align-items:center}
+  .pagefile{width:21px;height:28px;border:2px solid var(--navy);position:relative}
+  .pagefile:after{content:"";position:absolute;right:-2px;top:-2px;border-left:8px solid white;border-bottom:8px solid var(--navy)}
+  h2{font-size:14px;color:var(--navy);margin:0 0 8px;font-weight:700}
+  label,.label{display:block;color:#657174;font-size:12px;margin-bottom:6px}
+  .bgrow{display:grid;grid-template-columns:132px 132px minmax(350px,1fr);gap:10px 9px;align-items:start}
+  .asset-title{text-align:center;font-size:11px;line-height:12px;height:30px}
+  .asset{border:1px solid #98aaac}
+  .dimension{text-align:center;height:21px;line-height:21px;font-size:10px}
+  .portrait{height:138px;background:radial-gradient(circle at 68% 35%,#d29b7b 0 4%,#3d2d27 5% 9%,transparent 10%),radial-gradient(ellipse at 68% 43%,#c88e6d 0 10%,#15171c 11% 15%,transparent 16%),linear-gradient(115deg,transparent 47%,#142139 48% 74%,transparent 75%),linear-gradient(90deg,#111821,#25303b)}
+  .portrait.mobile{background-position:center}
+  .filename{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
+  .size{text-align:center;font-size:10px;margin-top:5px}
+  .fields{padding:30px 0 0 3px}
+  .fields input{height:39px;margin-bottom:9px}
+  input.text,textarea.text{width:100%;border:1px solid #9bacad;background:#f3f5f5;color:#27343a;padding:10px;font-size:12px;resize:none}
+  .section{border-top:1px solid var(--line);margin-top:12px;padding-top:11px}
+  .title-input{height:39px}
+  .toggle-line{display:flex;align-items:center;gap:16px;margin:8px 0}
+  .toggle{width:58px;height:26px;border-radius:16px;background:#697678;color:#fff;display:flex;align-items:center;padding:3px;font-size:12px}
+  .toggle:before{content:"";width:20px;height:20px;border-radius:50%;background:#fff;margin-right:4px}
+  .choice-title{font-size:12px;margin:8px 0 5px}
+  .choices{display:flex;gap:14px;margin-bottom:10px}
+  .choice{font-size:9px;color:#657174;text-align:left}
+  .choice .graphic{width:48px;height:27px;border:1px solid #ccd1d2;background:#eee;padding:3px;margin-bottom:2px}
+  .choice.active .graphic{border-color:#333}
+  .onebar{height:19px;background:#333}
+  .twobar{display:flex;gap:3px;height:19px}.twobar i{display:block;flex:1;background:#777}
+  .editor{height:166px;padding:15px 8px!important;line-height:1.45;overflow:hidden;background:#f3f5f5;border:1px solid #9bacad;color:#27343a}
+  .media-row{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin:8px 0 18px}
+  .smallbtn{height:28px;border:1px solid #d5dddd;background:#f5faf9;color:#6f797b;padding:0 14px}
+  .audio{width:282px;height:28px;border:1px solid #d5dddd;display:flex;align-items:center;gap:12px;padding:0 9px;font-size:10px;color:#60686a}
+  .audio__remove{background:none;border:none;padding:0;cursor:pointer;color:#60686a;font-size:12px;line-height:1;margin-left:auto}
+  .smallbtn--ai{border-color:#b9d8d6;background:#eef9f8;color:#166a66;font-weight:600}
+  .progress{height:4px;background:#ccc;flex:1;border-radius:4px}
+  .layout{margin-top:6px;padding-bottom:18px}
+  .layout p{font-size:12px;margin:0 0 5px;font-weight:600}
+  .minirow{display:flex;gap:16px;margin-bottom:16px}
+  .percent{display:flex;width:48px;height:27px;border:1px solid #ccc;background:#eee;align-items:center;font-size:12px}
+  .percent.active{border-color:#333}
+  .percent b{padding:0 5px}.percent span{border-left:1px solid #aaa;height:100%;display:grid;place-items:center;padding:0 5px}
+  .alignbox{width:48px;height:27px;border:1px solid #ccc;background:#eee;display:grid;place-items:center}
+  .active .alignbox{border-color:#333}
+  .lines{width:28px;height:14px;background:linear-gradient(#777 0 2px,transparent 2px 5px,#777 5px 7px,transparent 7px 10px,#777 10px 12px)}
+  .bgbox{width:48px;height:27px;border:1px solid #ccc;background:#eee;padding:4px}.bgbox i{display:block;width:24px;height:15px;background:#3b3b3b}
+  .gradient{background:linear-gradient(90deg,#777,#eee)}
+  .transcript{height:61px}
+  .floating-tools{position:fixed;right:19px;top:448px;width:40px;box-shadow:0 2px 4px #0002;z-index:5}
+  .floating-tools div{height:39px;display:grid;place-items:center;background:var(--teal);color:#fff;font-size:20px}
+  .floating-tools div:first-child{background:#eff3f3;color:#a9b7b8}
+  .help{position:fixed;right:18px;bottom:24px;z-index:8;display:flex;align-items:center;gap:8px}
+  .help .x,.help .bubble{background:#fff;box-shadow:0 8px 25px #5b77773b}
+  .help .x{width:37px;height:37px;border-radius:50%;display:grid;place-items:center}
+  .help .bubble{border-radius:20px;padding:11px 13px;color:#111}
+  .help .chat{width:51px;height:51px;border-radius:12px;background:#b00068;color:#fff;display:grid;place-items:center;font-size:23px;margin-left:0}
+  .transcript-modal-overlay{position:fixed;inset:0;background:rgba(19,28,36,.34);display:none;align-items:center;justify-content:center;z-index:60;padding:24px}
+  .transcript-modal-overlay.is-visible{display:flex}
+  .transcript-modal{width:min(560px,100%);background:#fff;border:1px solid #cbd4d5;border-radius:4px;box-shadow:0 16px 40px rgba(27,36,43,.24);padding:22px 24px 18px}
+  .transcript-modal__title{margin:0 0 10px;font-size:18px;line-height:1.35;color:#162e5c;font-weight:600}
+  .transcript-modal__body{margin:0;color:#25333a;font-size:14px;line-height:1.55}
+  .transcript-modal__actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+  .transcript-modal__button{height:32px;padding:0 16px;border-radius:2px;border:1px solid #00a79f;background:#fff;color:#00a79f;font-size:12px;font-weight:600;letter-spacing:.08px;cursor:pointer}
+  .transcript-modal__button--primary{background:#00a79f;color:#fff}
+  .ai-audio-modal-overlay{position:fixed;inset:0;background:rgba(19,28,36,.34);display:none;align-items:center;justify-content:center;z-index:65;padding:24px}
+  .ai-audio-modal-overlay.is-visible{display:flex}
+  .ai-audio-modal{width:min(720px,100%);max-height:min(90vh,820px);overflow:auto;background:#fff;border:1px solid #cbd4d5;border-radius:4px;box-shadow:0 16px 40px rgba(27,36,43,.24);padding:22px 24px 20px}
+  .ai-audio-modal__header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}
+  .ai-audio-modal__title{margin:0;font-size:20px;line-height:1.3;color:#162e5c;font-weight:600}
+  .ai-audio-modal__close{border:none;background:none;color:#5f6a6a;font-size:24px;line-height:1;cursor:pointer;padding:0}
+  .ai-audio-modal__label{display:block;color:#657174;font-size:12px;margin:12px 0 6px}
+  .ai-audio-modal__textarea{width:100%;min-height:150px;border:1px solid #9bacad;background:#f3f5f5;color:#27343a;padding:10px;font-size:12px;resize:vertical}
+  .ai-audio-modal__option-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+  .ai-audio-modal__checkbox{display:flex;align-items:center;gap:8px;font-size:13px;color:#25333a}
+  .ai-audio-modal__utility-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
+  .ai-audio-modal__voice-note{font-size:12px;color:#657174}
+  .ai-audio-modal__secondary{height:32px;padding:0 12px;border:1px solid #c3cbcb;background:#fff;color:#5f6a6a;font-size:12px;font-weight:600;cursor:pointer}
+  .ai-audio-modal__pronunciation{display:none;margin-top:10px}
+  .ai-audio-modal__pronunciation.is-visible{display:block}
+  .ai-audio-modal__status{display:none;margin-top:16px;padding:10px 12px;background:#eef9f8;border:1px solid #b9d8d6;color:#166a66;font-size:12px}
+  .ai-audio-modal__status.is-visible{display:block}
+  .ai-audio-modal__preview{display:none;margin-top:16px;padding-top:14px;border-top:1px solid #dfe6e7}
+  .ai-audio-modal__preview.is-visible{display:block}
+  .ai-audio-modal__preview-title{margin:0 0 10px;color:#162e5c;font-size:14px;font-weight:600}
+  .ai-audio-modal__footer{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .ai-audio-modal__button{height:32px;padding:0 16px;border-radius:2px;border:1px solid #00a79f;background:#fff;color:#00a79f;font-size:12px;font-weight:600;letter-spacing:.08px;cursor:pointer}
+  .ai-audio-modal__button--primary{background:#00a79f;color:#fff}
+  .ai-audio-modal__button--accept{display:none}
+  .ai-audio-modal__button--accept.is-visible{display:inline-flex;align-items:center}
+  @media(max-width:1050px){.mainnav{left:210px;right:20px;gap:4px}.mainnav a{font-size:18px;padding:29px 12px 21px}.mainnav a:nth-child(n+5){display:none}.outline{display:none}.brand{font-size:32px;top:16px}.brand-logo{width:32px;height:32px}.account{gap:6px;right:16px}.account .user{font-size:16px}.account .acct-icons{font-size:16px}.workspace{grid-template-columns:190px minmax(720px,1fr) 18px}.tools{gap:12px}.bgrow{grid-template-columns:130px 130px minmax(300px,1fr)}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><div data-name="Design_default" style="position:relative;width:130.5px;height:36px;"><img alt="" src="assets/a2aa491941b47983483d223e826dc4afe3abf73d.png" style="position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:cover;pointer-events:none;display:block;"></div></div>
+  <div class="account"><span class="lang">文A</span><button>⇥&nbsp; Save &amp; Exit</button><button class="disabled">☁&nbsp; Save</button><span class="user">Raj Shekar</span><span class="acct-icons">⚙</span></div>
+  <nav class="mainnav">
+    <a href="index.html">Getting Started</a><a class="active">Customize Your Course</a><a>Adaptive <i class="chev"></i></a>
+    <a>Knowledge Check</a><a>Disclosure</a><a>Gamification</a><a>Features</a>
+    <button class="outline"><span class="btn-icon">⊙</span>Preview Course</button><button class="outline"><span class="btn-icon">↕</span>Import/Export XML</button>
+  </nav>
+</header>
+<div class="workspace">
+  <aside class="left">
+    <div class="left-title"><span class="back">‹</span>Course Structure</div>
+    <div class="search"><span>Search by title or ID</span><span class="magnify"></span></div>
+    <div class="tree">
+      <div class="tree-row group first"><span class="gridicon">▦</span><span class="ellipsis">Know Your Customer (...</span></div>
+      <div class="tree-row group first"><span class="play">▶</span><span class="ellipsis">Launch Course...</span></div>
+      <div class="tree-row group"><span class="file"></span><span class="ellipsis">Know-Your-Cu...</span><span style="margin-left:auto">⌃</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>1. Doing Busines...</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>2. Building a KYC...</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>3. Proceed with ...</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>4. Thank you for ...</span></div>
+      <div class="tree-row group"><span class="file"></span><span>Customer Iden...</span><span style="margin-left:auto">⌃</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>5. Who Is This Cu...</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>6. Missing Paper...</span></div>
+      <div class="tree-row indent selected"><span class="file"></span><span>7. Thank you for ...</span></div>
+      <div class="tree-row group"><span class="file"></span><span>Customer Due...</span><span style="margin-left:auto">⌃</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>8. How Risky Is T...</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>9. Sufficiently Ro...</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>10. Thank you for ...</span></div>
+      <div class="tree-row group"><span class="file"></span><span>Ongoing Moni...</span><span style="margin-left:auto">⌃</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>11. Signs of Trouble</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>12. Problematic Pa...</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>13. Thank you for ...</span></div>
+      <div class="tree-row group"><span class="file"></span><span>Speaking Up</span><span style="margin-left:auto">⌃</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>14. Protecting Our...</span></div>
+      <div class="tree-row indent"><span class="file"></span><span>15. Before You Go...</span></div>
+    </div>
+  </aside>
+  <main class="center">
+    <div class="tools">
+      <div class="tool dim"><span class="docicon"></span>Add Lesson</div><div class="tool dim">▤ &nbsp; Add Topic</div>
+      <div class="tool" style="color:var(--teal)"><span class="docicon"></span><span style="color:#505b5e">Add Page</span></div>
+      <div class="tool" style="color:var(--teal)"><span class="docicon"></span><span style="color:#505b5e">Hide/Unhide Content</span></div>
+      <div class="tool dim">▦ &nbsp; Add Introduction Lesson</div><button class="preview">⊙ &nbsp; Preview Page</button>
+    </div>
+    <div class="page">
+      <div class="crumbline"><span>Know Your Customer (KYC)</span><span>Page 7 Lesson 2</span></div>
+      <h1><span class="pagefile"></span>Text and Image</h1>
+      <h2>Background Image</h2>
+      <div class="bgrow">
+        <div><div class="asset-title">Desktop &amp; Tablet<br><b>(Landscape)</b></div><div class="asset"><div class="dimension">1920x1080px</div><div class="portrait"></div></div><div class="filename">_text_left_light_baf00...</div><div class="size">200.97 KB</div></div>
+        <div><div class="asset-title">Mobile &amp; Tablet<br><b>(Portrait)</b></div><div class="asset"><div class="dimension">680x260px</div><div class="portrait mobile"></div></div><div class="filename">t_text_left_mobile_baf...</div><div class="size">36.63 KB</div></div>
+        <div class="fields"><label>Image Description</label><input class="text" placeholder="Enter Image Description Here"><label>Alternate Text</label><input class="text" placeholder="Enter Alternate Text Here"></div>
+      </div>
+      <section class="section">
+        <h2>Content</h2><label>Title</label><input class="text title-input" value="Thank you for helping Haru.">
+        <div class="toggle-line"><span>Do you want this to be an image only page?</span><span class="toggle">No</span></div>
+        <div class="choice-title">How many columns do you need for the content?</div>
+        <div class="choices"><div class="choice active"><div class="graphic"><div class="onebar"></div></div>1 Column</div><div class="choice"><div class="graphic"><div class="twobar"><i></i><i></i></div></div>2 Columns</div></div>
+        <label>Column 1 Text</label>
+        <div class="text editor" contenteditable="true">
+          <p>Davina could simply be forgetful – or she could be a criminal who wants to hide stolen cash. The only way to be certain is to understand who Davina really is.</p>
+          <p>CIP processes are designed to help firms like Haru’s confirm the identities of clients like Davina and manage any risks associated with doing business with them. The CIP is one important step toward protecting ourselves and our community from the danger of financial crimes. That’s why it’s important to make sure that every step of the process is followed correctly, and all the necessary documentation is collected.</p>
+          <p>Even when you are busy, or under pressure from a customer or superior, it’s vital that you take the time to collect all the information and documentation that we need. We count on you to follow our CIP processes and to let us know if you ever identify any shortcomings in our system.</p>
+        </div>
+        <div class="media-row"><button class="smallbtn">▧ &nbsp; Add Icon</button><div class="audio" id="audio-player">♫ &nbsp; <b id="audio-filename">clc_ty_07.mp3</b><span>▶</span><span class="progress"></span><button type="button" class="audio__remove" aria-label="Remove audio">×</button></div><button type="button" class="smallbtn" id="add-audio-btn" style="display:none">&#9834; &nbsp; Add Audio</button><button type="button" class="smallbtn smallbtn--ai" id="ai-audio-btn">&#10022; &nbsp; AI Audio</button><input type="file" id="audio-file-input" accept=".mp3,audio/mpeg" style="display:none"></div>
+        <div class="layout">
+          <h2>Layout</h2>
+          <p>How much area of the page will be covered by content?</p>
+          <div class="minirow"><div><div class="percent active"><b>50</b><span>%</span></div><small>50%</small></div><div><div class="percent"><b>70</b><span>%</span></div><small>70%</small></div></div>
+          <p>Where would you like the content to appear?</p>
+          <div class="minirow"><div class="choice active"><div class="alignbox"><span class="lines"></span></div>On Left</div><div class="choice"><div class="alignbox"><span class="lines"></span></div>Centered</div><div class="choice"><div class="alignbox"><span class="lines"></span></div>On Right</div></div>
+          <p>What background would you like behind the content?</p>
+          <div class="minirow"><div class="choice active"><div class="bgbox"><i></i></div>Box</div><div class="choice"><div class="bgbox gradient"></div>Gradient</div></div>
+        </div>
+      </section>
+      <section class="section"><h2>Audio Transcript</h2><textarea class="text transcript">Thanks for your help.</textarea></section>
+      <section class="section"><h2>Page Bulletin</h2><div class="toggle-line"><span>Do you want to add a page bulletin?</span><span class="toggle">No</span></div></section>
+    </div>
+  </main>
+  <aside class="right-strip"><div class="collapse">‹</div><div class="plus">+</div><div class="comment"></div></aside>
+</div>
+<div class="floating-tools"><div>☁</div><div>⊙</div><div>▤</div></div>
+<div class="help"><div class="x">×</div><div class="bubble">Hi. Need any help?</div><div class="chat">▰</div></div>
+<div class="ai-audio-modal-overlay" id="ai-audio-modal-overlay">
+  <div class="ai-audio-modal" role="dialog" aria-modal="true" aria-labelledby="ai-audio-modal-title">
+    <div class="ai-audio-modal__header">
+      <h2 class="ai-audio-modal__title" id="ai-audio-modal-title">AI Audio</h2>
+      <button type="button" class="ai-audio-modal__close" id="ai-audio-close" aria-label="Close">×</button>
+    </div>
+    <label class="ai-audio-modal__label" for="ai-audio-transcript">Transcript</label>
+    <textarea class="ai-audio-modal__textarea" id="ai-audio-transcript"></textarea>
+    <div class="ai-audio-modal__option-row">
+      <label class="ai-audio-modal__checkbox"><input type="checkbox" id="ai-audio-pronunciations-toggle"> <span>Use custom pronunciations.</span></label>
+      <button type="button" class="ai-audio-modal__secondary" id="ai-audio-configure-voice">Configure Voice</button>
+    </div>
+    <div class="ai-audio-modal__pronunciation" id="ai-audio-pronunciation-block">
+      <div class="ai-audio-modal__utility-row">
+        <label class="ai-audio-modal__label" for="ai-audio-pronunciations">Pronunciation Text</label>
+        <button type="button" class="ai-audio-modal__secondary" id="ai-audio-copy-transcript">Copy From Transcript</button>
+      </div>
+      <textarea class="ai-audio-modal__textarea" id="ai-audio-pronunciations"></textarea>
+    </div>
+    <p class="ai-audio-modal__voice-note" id="ai-audio-voice-note">Voice: Default Narration</p>
+    <div class="ai-audio-modal__status" id="ai-audio-status">Generating audio preview...</div>
+    <div class="ai-audio-modal__preview" id="ai-audio-preview">
+      <p class="ai-audio-modal__preview-title">Generated Audio Preview</p>
+      <div class="audio">♫ &nbsp; <b id="ai-generated-filename">ai_generated_page_audio.mp3</b><span>▶</span><span class="progress"></span></div>
+    </div>
+    <div class="ai-audio-modal__footer">
+      <button type="button" class="ai-audio-modal__button" id="ai-audio-cancel">Cancel</button>
+      <button type="button" class="ai-audio-modal__button ai-audio-modal__button--accept" id="ai-audio-accept">Accept Audio</button>
+      <button type="button" class="ai-audio-modal__button ai-audio-modal__button--primary" id="ai-audio-generate">Generate</button>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    var transcriptField = document.querySelector('.transcript');
+    if (!transcriptField) {
+      return;
+    }
+
+    var translationAssistPreferenceKey = 'cat.translationAssistEnabled';
+    var reviewDelayMs = 3000;
+    var reviewTimer = null;
+    var transcriptReviewModal = null;
+    var acknowledgedTranscriptValue = transcriptField.value;
+
+    function isTranslationAssistEnabled() {
+      try {
+        return window.localStorage.getItem(translationAssistPreferenceKey) === 'true';
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function ensureTranscriptReviewModal() {
+      if (transcriptReviewModal) {
+        return transcriptReviewModal;
+      }
+
+      transcriptReviewModal = document.createElement('div');
+      transcriptReviewModal.className = 'transcript-modal-overlay';
+      transcriptReviewModal.innerHTML = '' +
+        '<div class="transcript-modal" role="dialog" aria-modal="true" aria-labelledby="transcript-review-title">' +
+          '<h2 id="transcript-review-title" class="transcript-modal__title">Transcript updated</h2>' +
+          '<p class="transcript-modal__body">We have noticed that you have edited the transcript. Do you wish to regenerate the page audio for this page?</p>' +
+          '<div class="transcript-modal__actions">' +
+            '<button type="button" class="transcript-modal__button transcript-modal__button--cancel">Cancel</button>' +
+            '<button type="button" class="transcript-modal__button transcript-modal__button--primary transcript-modal__button--yes">Yes</button>' +
+          '</div>' +
+        '</div>';
+
+      transcriptReviewModal.addEventListener('click', function (event) {
+        if (event.target === transcriptReviewModal) {
+          closeTranscriptReviewModal();
+        }
+      });
+
+      transcriptReviewModal.querySelector('.transcript-modal__button--cancel').addEventListener('click', closeTranscriptReviewModal);
+      transcriptReviewModal.querySelector('.transcript-modal__button--yes').addEventListener('click', function () {
+        acknowledgedTranscriptValue = transcriptField.value;
+        closeTranscriptReviewModal();
+      });
+
+      document.body.appendChild(transcriptReviewModal);
+      return transcriptReviewModal;
+    }
+
+    function closeTranscriptReviewModal() {
+      if (!transcriptReviewModal) {
+        return;
+      }
+
+      acknowledgedTranscriptValue = transcriptField.value;
+      transcriptReviewModal.classList.remove('is-visible');
+    }
+
+    function showTranscriptReviewModal() {
+      if (!isTranslationAssistEnabled()) {
+        return;
+      }
+
+      if (transcriptField.value === acknowledgedTranscriptValue) {
+        return;
+      }
+
+      ensureTranscriptReviewModal().classList.add('is-visible');
+    }
+
+    function scheduleTranscriptReviewModal() {
+      if (reviewTimer) {
+        window.clearTimeout(reviewTimer);
+      }
+
+      reviewTimer = window.setTimeout(function () {
+        showTranscriptReviewModal();
+      }, reviewDelayMs);
+    }
+
+    transcriptField.addEventListener('input', function () {
+      scheduleTranscriptReviewModal();
+    });
+
+    transcriptField.addEventListener('paste', function () {
+      scheduleTranscriptReviewModal();
+    });
+
+    var audioPlayer = document.getElementById('audio-player');
+    var addAudioBtn = document.getElementById('add-audio-btn');
+    var aiAudioBtn = document.getElementById('ai-audio-btn');
+    var audioFileInput = document.getElementById('audio-file-input');
+    var audioFilename = document.getElementById('audio-filename');
+    var aiAudioOverlay = document.getElementById('ai-audio-modal-overlay');
+    var aiAudioTranscriptField = document.getElementById('ai-audio-transcript');
+    var aiAudioPronunciationsToggle = document.getElementById('ai-audio-pronunciations-toggle');
+    var aiAudioPronunciationBlock = document.getElementById('ai-audio-pronunciation-block');
+    var aiAudioPronunciationsField = document.getElementById('ai-audio-pronunciations');
+    var aiAudioCopyTranscriptBtn = document.getElementById('ai-audio-copy-transcript');
+    var aiAudioConfigureVoiceBtn = document.getElementById('ai-audio-configure-voice');
+    var aiAudioVoiceNote = document.getElementById('ai-audio-voice-note');
+    var aiAudioStatus = document.getElementById('ai-audio-status');
+    var aiAudioPreview = document.getElementById('ai-audio-preview');
+    var aiGeneratedFilename = document.getElementById('ai-generated-filename');
+    var aiAudioGenerateBtn = document.getElementById('ai-audio-generate');
+    var aiAudioAcceptBtn = document.getElementById('ai-audio-accept');
+    var aiAudioCancelBtn = document.getElementById('ai-audio-cancel');
+    var aiAudioCloseBtn = document.getElementById('ai-audio-close');
+    var pronunciationDraft = '';
+    var generatedAudioFileName = '';
+    var selectedVoiceLabel = 'Default Narration';
+    var voiceOptions = ['Default Narration', 'Warm Guide', 'Clear Instruction'];
+    var voiceIndex = 0;
+    var generationTimer = null;
+
+    function getPlainTranscriptText() {
+      var columnEditor = document.querySelector('.editor');
+      if (!columnEditor) {
+        return '';
+      }
+
+      return columnEditor.innerText.replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    function syncAiVoiceNote() {
+      if (aiAudioVoiceNote) {
+        aiAudioVoiceNote.textContent = 'Voice: ' + selectedVoiceLabel;
+      }
+    }
+
+    function closeAiAudioModal() {
+      if (!aiAudioOverlay) {
+        return;
+      }
+
+      if (generationTimer) {
+        window.clearTimeout(generationTimer);
+        generationTimer = null;
+      }
+
+      if (aiAudioPronunciationsField) {
+        pronunciationDraft = aiAudioPronunciationsField.value;
+      }
+
+      aiAudioOverlay.classList.remove('is-visible');
+      aiAudioStatus.classList.remove('is-visible');
+    }
+
+    function openAiAudioModal() {
+      if (!aiAudioOverlay || !aiAudioTranscriptField) {
+        return;
+      }
+
+      aiAudioTranscriptField.value = transcriptField.value.trim() || getPlainTranscriptText();
+      aiAudioPronunciationsField.value = pronunciationDraft;
+      aiAudioPronunciationBlock.classList.toggle('is-visible', aiAudioPronunciationsToggle.checked);
+      aiAudioPreview.classList.remove('is-visible');
+      aiAudioStatus.classList.remove('is-visible');
+      aiAudioAcceptBtn.classList.remove('is-visible');
+      generatedAudioFileName = '';
+      syncAiVoiceNote();
+      aiAudioOverlay.classList.add('is-visible');
+    }
+    if (audioPlayer && addAudioBtn && audioFileInput) {
+      audioPlayer.querySelector('.audio__remove').addEventListener('click', function () {
+        audioPlayer.style.display = 'none';
+        addAudioBtn.style.display = '';
+      });
+      addAudioBtn.addEventListener('click', function () {
+        audioFileInput.value = '';
+        audioFileInput.click();
+      });
+      audioFileInput.addEventListener('change', function () {
+        var file = audioFileInput.files && audioFileInput.files[0];
+        if (!file) {
+          return;
+        }
+        if (audioFilename) {
+          audioFilename.textContent = file.name;
+        }
+        addAudioBtn.style.display = 'none';
+        audioPlayer.style.display = '';
+      });
+    }
+
+    if (aiAudioBtn && aiAudioOverlay && aiAudioPronunciationsToggle && aiAudioPronunciationsField && aiAudioCopyTranscriptBtn && aiAudioConfigureVoiceBtn && aiAudioGenerateBtn && aiAudioAcceptBtn && aiAudioCancelBtn && aiAudioCloseBtn && aiGeneratedFilename) {
+      aiAudioBtn.addEventListener('click', openAiAudioModal);
+      aiAudioOverlay.addEventListener('click', function (event) {
+        if (event.target === aiAudioOverlay) {
+          closeAiAudioModal();
+        }
+      });
+      aiAudioCloseBtn.addEventListener('click', closeAiAudioModal);
+      aiAudioCancelBtn.addEventListener('click', closeAiAudioModal);
+      aiAudioPronunciationsToggle.addEventListener('change', function () {
+        aiAudioPronunciationBlock.classList.toggle('is-visible', aiAudioPronunciationsToggle.checked);
+      });
+      aiAudioPronunciationsField.addEventListener('input', function () {
+        pronunciationDraft = aiAudioPronunciationsField.value;
+      });
+      aiAudioCopyTranscriptBtn.addEventListener('click', function () {
+        aiAudioPronunciationsField.value = aiAudioTranscriptField.value;
+        pronunciationDraft = aiAudioPronunciationsField.value;
+      });
+      aiAudioConfigureVoiceBtn.addEventListener('click', function () {
+        voiceIndex = (voiceIndex + 1) % voiceOptions.length;
+        selectedVoiceLabel = voiceOptions[voiceIndex];
+        syncAiVoiceNote();
+      });
+      aiAudioGenerateBtn.addEventListener('click', function () {
+        aiAudioStatus.classList.add('is-visible');
+        aiAudioPreview.classList.remove('is-visible');
+        aiAudioAcceptBtn.classList.remove('is-visible');
+        generatedAudioFileName = '';
+
+        if (generationTimer) {
+          window.clearTimeout(generationTimer);
+        }
+
+        generationTimer = window.setTimeout(function () {
+          generatedAudioFileName = 'ai_generated_page_audio.mp3';
+          aiGeneratedFilename.textContent = generatedAudioFileName;
+          aiAudioStatus.classList.remove('is-visible');
+          aiAudioPreview.classList.add('is-visible');
+          aiAudioAcceptBtn.classList.add('is-visible');
+          generationTimer = null;
+        }, 1300);
+      });
+      aiAudioAcceptBtn.addEventListener('click', function () {
+        if (!generatedAudioFileName) {
+          return;
+        }
+
+        if (audioFilename) {
+          audioFilename.textContent = generatedAudioFileName;
+        }
+        addAudioBtn.style.display = 'none';
+        audioPlayer.style.display = '';
+        closeAiAudioModal();
+      });
+    }
+  })();
+</script>
+</body>
+</html>

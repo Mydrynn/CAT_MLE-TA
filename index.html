@@ -1625,11 +1625,52 @@
 
     bindAssignReviewerAction();
 
+    function bindCustomizeYourCourseNavigation() {
+      var navLabel = Array.from(document.querySelectorAll('p')).find(function (node) {
+        var text = node.textContent.trim();
+        return text === 'Customize Your Course' || text === 'Customizer Your Course';
+      });
+
+      if (!navLabel) {
+        return;
+      }
+
+      var navTab = navLabel.closest('[data-name="Nav/Elements/L2 States"]') || navLabel;
+      navTab.style.cursor = 'pointer';
+      navTab.setAttribute('role', 'link');
+      navTab.setAttribute('tabindex', '0');
+
+      function openCustomizePage() {
+        window.location.href = 'customize-your-course.html';
+      }
+
+      navTab.addEventListener('click', openCustomizePage);
+      navTab.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openCustomizePage();
+        }
+      });
+    }
+
+    bindCustomizeYourCourseNavigation();
+
+    var translationAssistPreferenceKey = 'cat.translationAssistEnabled';
+
+    function setTranslationAssistPreference(isEnabled) {
+      try {
+        window.localStorage.setItem(translationAssistPreferenceKey, isEnabled ? 'true' : 'false');
+      } catch (error) {
+      }
+    }
+
     function refreshTranslationAssistUI() {
       var isMultilingualOn = multilingualToggle ? multilingualToggle.getAttribute('aria-checked') === 'true' : true;
       var isTranslationAssistOn = translationToggle ? translationToggle.getAttribute('aria-checked') === 'true' : true;
+      var isTranslationAssistEnabled = isMultilingualOn && isTranslationAssistOn;
 
       setTranslationAssistSectionVisibility(isMultilingualOn);
+      setTranslationAssistPreference(isTranslationAssistEnabled);
 
       if (!isMultilingualOn) {
         renderTranslationWidget(false);
