@@ -129,8 +129,17 @@
   .ai-audio-modal__option-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
   .ai-audio-modal__checkbox{display:flex;align-items:center;gap:8px;font-size:13px;color:#25333a}
   .ai-audio-modal__utility-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap}
-  .ai-audio-modal__voice-note{font-size:12px;color:#657174}
   .ai-audio-modal__secondary{height:32px;padding:0 12px;border:1px solid #c3cbcb;background:#fff;color:#5f6a6a;font-size:12px;font-weight:600;cursor:pointer}
+  .ai-audio-modal__selects-row{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+  .ai-audio-modal__select-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px}
+  .ai-audio-modal__select-label{font-size:11px;color:#657174;font-weight:600}
+  .ai-audio-modal__select{height:32px;border:1px solid #9bacad;background:#f3f5f5;color:#27343a;padding:0 8px;font-size:12px;width:100%}
+  .page-pronunciation-icon{background:none;border:none;padding:0 0 0 6px;cursor:pointer;color:#00a79f;font-size:15px;vertical-align:middle;line-height:1;opacity:.7}
+  .page-pronunciation-icon.is-active{opacity:1}
+  .page-pronunciation-block{display:none;margin-top:8px}
+  .page-pronunciation-block.is-visible{display:block}
+  .page-pronunciation-actions{display:flex;justify-content:flex-end;margin-bottom:5px}
+  .page-pronunciation-copy{height:26px;padding:0 10px;border:1px solid #c3cbcb;background:#fff;color:#5f6a6a;font-size:11px;cursor:pointer}
   .ai-audio-modal__pronunciation{display:none;margin-top:10px}
   .ai-audio-modal__pronunciation.is-visible{display:block}
   .ai-audio-modal__status{display:none;margin-top:16px;padding:10px 12px;background:#eef9f8;border:1px solid #b9d8d6;color:#166a66;font-size:12px}
@@ -223,7 +232,14 @@
           <div class="minirow"><div class="choice active"><div class="bgbox"><i></i></div>Box</div><div class="choice"><div class="bgbox gradient"></div>Gradient</div></div>
         </div>
       </section>
-      <section class="section"><h2>Audio Transcript</h2><textarea class="text transcript">Thanks for your help.</textarea></section>
+      <section class="section">
+        <h2>Audio Transcript<button type="button" class="page-pronunciation-icon" id="page-pronunciation-toggle" style="display:none" title="Custom pronunciations active — click to toggle">&#128263;</button></h2>
+        <textarea class="text transcript">Thanks for your help.</textarea>
+        <div class="page-pronunciation-block" id="page-pronunciation-block">
+          <div class="page-pronunciation-actions"><button type="button" class="page-pronunciation-copy" id="page-pronunciation-copy">Copy transcript to pronunciation</button></div>
+          <textarea class="text" id="page-pronunciation-field" style="min-height:60px" placeholder="Custom pronunciation text…"></textarea>
+        </div>
+      </section>
       <section class="section"><h2>Page Bulletin</h2><div class="toggle-line"><span>Do you want to add a page bulletin?</span><span class="toggle">No</span></div></section>
     </div>
   </main>
@@ -241,7 +257,26 @@
     <textarea class="ai-audio-modal__textarea" id="ai-audio-transcript"></textarea>
     <div class="ai-audio-modal__option-row">
       <label class="ai-audio-modal__checkbox"><input type="checkbox" id="ai-audio-pronunciations-toggle"> <span>Use custom pronunciations.</span></label>
-      <button type="button" class="ai-audio-modal__secondary" id="ai-audio-configure-voice">Configure Voice</button>
+    </div>
+    <div class="ai-audio-modal__selects-row">
+      <div class="ai-audio-modal__select-group">
+        <label class="ai-audio-modal__select-label" for="ai-audio-voice-select">Voice</label>
+        <select class="ai-audio-modal__select" id="ai-audio-voice-select">
+          <option value="male1">Male 1</option>
+          <option value="male2">Male 2</option>
+          <option value="female1">Female 1</option>
+          <option value="female2">Female 2</option>
+        </select>
+      </div>
+      <div class="ai-audio-modal__select-group">
+        <label class="ai-audio-modal__select-label" for="ai-audio-tone-select">Tone</label>
+        <select class="ai-audio-modal__select" id="ai-audio-tone-select">
+          <option value="formal">Formal</option>
+          <option value="friendly">Friendly</option>
+          <option value="neutral">Neutral</option>
+          <option value="professional">Professional</option>
+        </select>
+      </div>
     </div>
     <div class="ai-audio-modal__pronunciation" id="ai-audio-pronunciation-block">
       <div class="ai-audio-modal__utility-row">
@@ -250,7 +285,6 @@
       </div>
       <textarea class="ai-audio-modal__textarea" id="ai-audio-pronunciations"></textarea>
     </div>
-    <p class="ai-audio-modal__voice-note" id="ai-audio-voice-note">Voice: Default Narration</p>
     <div class="ai-audio-modal__status" id="ai-audio-status">Generating audio preview...</div>
     <div class="ai-audio-modal__preview" id="ai-audio-preview">
       <p class="ai-audio-modal__preview-title">Generated Audio Preview</p>
@@ -311,6 +345,7 @@
       transcriptReviewModal.querySelector('.transcript-modal__button--yes').addEventListener('click', function () {
         acknowledgedTranscriptValue = transcriptField.value;
         closeTranscriptReviewModal();
+        openAiAudioModal();
       });
 
       document.body.appendChild(transcriptReviewModal);
@@ -367,9 +402,11 @@
     var aiAudioPronunciationBlock = document.getElementById('ai-audio-pronunciation-block');
     var aiAudioPronunciationsField = document.getElementById('ai-audio-pronunciations');
     var aiAudioCopyTranscriptBtn = document.getElementById('ai-audio-copy-transcript');
-    var aiAudioConfigureVoiceBtn = document.getElementById('ai-audio-configure-voice');
-    var aiAudioVoiceNote = document.getElementById('ai-audio-voice-note');
     var aiAudioStatus = document.getElementById('ai-audio-status');
+    var pagePronunciationToggle = document.getElementById('page-pronunciation-toggle');
+    var pagePronunciationBlock = document.getElementById('page-pronunciation-block');
+    var pagePronunciationField = document.getElementById('page-pronunciation-field');
+    var pagePronunciationCopy = document.getElementById('page-pronunciation-copy');
     var aiAudioPreview = document.getElementById('ai-audio-preview');
     var aiGeneratedFilename = document.getElementById('ai-generated-filename');
     var aiAudioGenerateBtn = document.getElementById('ai-audio-generate');
@@ -378,9 +415,6 @@
     var aiAudioCloseBtn = document.getElementById('ai-audio-close');
     var pronunciationDraft = '';
     var generatedAudioFileName = '';
-    var selectedVoiceLabel = 'Default Narration';
-    var voiceOptions = ['Default Narration', 'Warm Guide', 'Clear Instruction'];
-    var voiceIndex = 0;
     var generationTimer = null;
 
     function getPlainTranscriptText() {
@@ -390,12 +424,6 @@
       }
 
       return columnEditor.innerText.replace(/\n{3,}/g, '\n\n').trim();
-    }
-
-    function syncAiVoiceNote() {
-      if (aiAudioVoiceNote) {
-        aiAudioVoiceNote.textContent = 'Voice: ' + selectedVoiceLabel;
-      }
     }
 
     function closeAiAudioModal() {
@@ -410,6 +438,19 @@
 
       if (aiAudioPronunciationsField) {
         pronunciationDraft = aiAudioPronunciationsField.value;
+      }
+
+      if (aiAudioTranscriptField && transcriptField) {
+        transcriptField.value = aiAudioTranscriptField.value;
+        acknowledgedTranscriptValue = transcriptField.value;
+      }
+
+      if (pronunciationDraft.trim() && pagePronunciationToggle) {
+        pagePronunciationToggle.style.display = '';
+        pagePronunciationToggle.classList.add('is-active');
+        if (pagePronunciationField) {
+          pagePronunciationField.value = pronunciationDraft;
+        }
       }
 
       aiAudioOverlay.classList.remove('is-visible');
@@ -428,7 +469,6 @@
       aiAudioStatus.classList.remove('is-visible');
       aiAudioAcceptBtn.classList.remove('is-visible');
       generatedAudioFileName = '';
-      syncAiVoiceNote();
       aiAudioOverlay.classList.add('is-visible');
     }
     if (audioPlayer && addAudioBtn && audioFileInput) {
@@ -453,7 +493,7 @@
       });
     }
 
-    if (aiAudioBtn && aiAudioOverlay && aiAudioPronunciationsToggle && aiAudioPronunciationsField && aiAudioCopyTranscriptBtn && aiAudioConfigureVoiceBtn && aiAudioGenerateBtn && aiAudioAcceptBtn && aiAudioCancelBtn && aiAudioCloseBtn && aiGeneratedFilename) {
+    if (aiAudioBtn && aiAudioOverlay && aiAudioPronunciationsToggle && aiAudioPronunciationsField && aiAudioCopyTranscriptBtn && aiAudioGenerateBtn && aiAudioAcceptBtn && aiAudioCancelBtn && aiAudioCloseBtn && aiGeneratedFilename) {
       aiAudioBtn.addEventListener('click', openAiAudioModal);
       aiAudioOverlay.addEventListener('click', function (event) {
         if (event.target === aiAudioOverlay) {
@@ -472,11 +512,16 @@
         aiAudioPronunciationsField.value = aiAudioTranscriptField.value;
         pronunciationDraft = aiAudioPronunciationsField.value;
       });
-      aiAudioConfigureVoiceBtn.addEventListener('click', function () {
-        voiceIndex = (voiceIndex + 1) % voiceOptions.length;
-        selectedVoiceLabel = voiceOptions[voiceIndex];
-        syncAiVoiceNote();
-      });
+      if (pagePronunciationToggle && pagePronunciationBlock) {
+        pagePronunciationToggle.addEventListener('click', function () {
+          pagePronunciationBlock.classList.toggle('is-visible');
+        });
+      }
+      if (pagePronunciationCopy && pagePronunciationField && transcriptField) {
+        pagePronunciationCopy.addEventListener('click', function () {
+          pagePronunciationField.value = transcriptField.value;
+        });
+      }
       aiAudioGenerateBtn.addEventListener('click', function () {
         aiAudioStatus.classList.add('is-visible');
         aiAudioPreview.classList.remove('is-visible');
