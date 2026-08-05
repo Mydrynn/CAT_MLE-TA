@@ -11,6 +11,9 @@
 <script>
   (function () {
     var reviewerModalOverlay = null;
+    var importExportXmlDialogOverlay = null;
+    var partialXmlHistoryOverlay = null;
+    var partialXmlEntryDetailsOverlay = null;
     var activeReviewerLanguage = null;
     var manageReviewerModalOverlay = null;
     var reviewerEmailComposerOverlay = null;
@@ -38,6 +41,249 @@
       { id: 'jl', name: 'Jean Leclerc', email: 'jean.leclerc@linguavista.com', username: 'jean.leclerc', permissions: 'full-edit', languages: ['LA - Spanish', 'DE - German'] },
       { id: 'lm', name: 'Lucas Martin', email: 'lucas.martin@linguavista.com', username: 'lucas.martin', permissions: 'partial-edit', languages: ['CA - French'] }
     ];
+    var partialXmlHistoryEntries = [
+      {
+        packageId: 'PX-2026-08-05-001',
+        packageFileName: 'PX-2026-08-05-001.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-08-05 08:42 AM',
+        edits: 22,
+        affectedFields: 22
+      },
+      {
+        packageId: 'PX-2026-08-05-001',
+        packageFileName: 'PX-2026-08-05-001.zip',
+        type: 'Imported',
+        user: 'Anya Petrov',
+        when: '2026-08-05 09:14 AM',
+        status: 'Imported',
+        affectedFields: 22
+      },
+      {
+        packageId: 'PX-2026-08-04-014',
+        packageFileName: 'PX-2026-08-04-014.zip',
+        type: 'Imported',
+        user: 'Mateo Ruiz',
+        when: '2026-08-04 05:10 PM',
+        status: 'Partially Imported',
+        affectedFields: 15
+      },
+      {
+        packageId: 'PX-2026-08-04-014',
+        packageFileName: 'PX-2026-08-04-014.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-08-04 03:29 PM',
+        edits: 15,
+        affectedFields: 15
+      },
+      {
+        packageId: 'PX-2026-08-03-010',
+        packageFileName: 'PX-2026-08-03-010.zip',
+        type: 'Imported',
+        user: 'Elena Varga',
+        when: '2026-08-03 02:33 PM',
+        status: 'Imported with Recoverable Mismatches',
+        affectedFields: 31
+      },
+      {
+        packageId: 'PX-2026-08-03-010',
+        packageFileName: 'PX-2026-08-03-010.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-08-03 11:48 AM',
+        edits: 31,
+        affectedFields: 31
+      },
+      {
+        packageId: 'PX-2026-08-02-006',
+        packageFileName: 'PX-2026-08-02-006.zip',
+        type: 'Imported',
+        user: 'Lucas Martin',
+        when: '2026-08-02 10:58 AM',
+        status: 'Failed Import',
+        affectedFields: 8
+      },
+      {
+        packageId: 'PX-2026-08-02-006',
+        packageFileName: 'PX-2026-08-02-006.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-08-02 09:11 AM',
+        edits: 8,
+        affectedFields: 8
+      },
+      {
+        packageId: 'PX-2026-08-01-002',
+        packageFileName: 'PX-2026-08-01-002.zip',
+        type: 'Imported',
+        user: 'Anya Petrov',
+        when: '2026-08-01 03:06 PM',
+        status: 'Imported',
+        affectedFields: 19
+      },
+      {
+        packageId: 'PX-2026-08-01-002',
+        packageFileName: 'PX-2026-08-01-002.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-08-01 10:17 AM',
+        edits: 19,
+        affectedFields: 19
+      },
+      {
+        packageId: 'PX-2026-07-31-019',
+        packageFileName: 'PX-2026-07-31-019.zip',
+        type: 'Imported',
+        user: 'Mateo Ruiz',
+        when: '2026-07-31 04:44 PM',
+        status: 'Partially Imported',
+        affectedFields: 12
+      },
+      {
+        packageId: 'PX-2026-07-31-019',
+        packageFileName: 'PX-2026-07-31-019.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-07-31 01:55 PM',
+        edits: 12,
+        affectedFields: 12
+      },
+      {
+        packageId: 'PX-2026-07-30-011',
+        packageFileName: 'PX-2026-07-30-011.zip',
+        type: 'Imported',
+        user: 'Elena Varga',
+        when: '2026-07-30 06:02 PM',
+        status: 'Imported with Recoverable Mismatches',
+        affectedFields: 27
+      },
+      {
+        packageId: 'PX-2026-07-30-011',
+        packageFileName: 'PX-2026-07-30-011.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-07-30 08:56 AM',
+        edits: 27,
+        affectedFields: 27
+      },
+      {
+        packageId: 'PX-2026-07-29-007',
+        packageFileName: 'PX-2026-07-29-007.zip',
+        type: 'Imported',
+        user: 'Lucas Martin',
+        when: '2026-07-29 02:48 PM',
+        status: 'Imported',
+        affectedFields: 10
+      },
+      {
+        packageId: 'PX-2026-07-29-007',
+        packageFileName: 'PX-2026-07-29-007.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-07-29 09:34 AM',
+        edits: 10,
+        affectedFields: 10
+      },
+      {
+        packageId: 'PX-2026-07-28-004',
+        packageFileName: 'PX-2026-07-28-004.zip',
+        type: 'Imported',
+        user: 'Anya Petrov',
+        when: '2026-07-28 04:25 PM',
+        status: 'Failed Import',
+        affectedFields: 6
+      },
+      {
+        packageId: 'PX-2026-07-28-004',
+        packageFileName: 'PX-2026-07-28-004.zip',
+        type: 'Exported',
+        user: 'Raj Shekar',
+        when: '2026-07-28 09:22 AM',
+        edits: 6,
+        affectedFields: 6
+      }
+    ];
+
+    function mapImportStatusToDetailsStatus(statusText) {
+      if (statusText === 'Imported') {
+        return 'Success';
+      }
+      if (statusText === 'Partially Imported') {
+        return 'Partial';
+      }
+      if (statusText === 'Imported with Recoverable Mismatches') {
+        return 'Imported with Recoverable Mismatches';
+      }
+      if (statusText === 'Failed Import') {
+        return 'Failed';
+      }
+      return 'Partial';
+    }
+
+    function buildImportedDetails(entry, importedIndex) {
+      var languages = ['CA - French', 'LA - Spanish', 'DE - German'];
+      var detailsStatus = mapImportStatusToDetailsStatus(entry.status);
+      var skippedCount = detailsStatus === 'Success' ? 0 : (detailsStatus === 'Failed' ? 3 : 2);
+      var appliedCount = Math.max(0, Number(entry.affectedFields || 0) - skippedCount);
+      var fieldPrefix = entry.packageId.replace(/[^0-9]/g, '').slice(-4) || '1000';
+
+      function fieldId(offset) {
+        return 'fld-' + fieldPrefix + '-' + String(offset).padStart(2, '0');
+      }
+
+      var skippedItems = skippedCount > 0
+        ? Array.from({ length: skippedCount }, function (_, idx) {
+            return {
+              fieldId: fieldId(idx + 1),
+              reason: idx % 2 === 0 ? 'Source value unchanged from baseline.' : 'Invalid placeholder token in uploaded value.'
+            };
+          })
+        : [];
+
+      var recoverableItems = detailsStatus === 'Imported with Recoverable Mismatches'
+        ? [
+            { fieldId: fieldId(7), pageId: 'page-02', reason: 'Target section remapped due to layout drift.' },
+            { fieldId: fieldId(8), pageId: '', reason: 'Optional target node not present in current package schema.' }
+          ]
+        : [];
+
+      var missingFromFile = detailsStatus === 'Failed'
+        ? [fieldId(11), fieldId(12), fieldId(13)]
+        : (detailsStatus === 'Partial' ? [fieldId(10)] : []);
+
+      var confirmationDecision = detailsStatus === 'Failed' ? 'Cancel' : 'Proceed';
+      var confirmedBy = confirmationDecision === 'Proceed' ? 'Raj Shekar' : 'Elena Varga';
+
+      return {
+        exportId: entry.packageId,
+        language: languages[(importedIndex - 1) % languages.length],
+        uploadedBy: entry.user,
+        uploadedAt: entry.when,
+        appliedCount: appliedCount,
+        skippedCount: skippedCount,
+        skippedItems: skippedItems,
+        recoverableItems: recoverableItems,
+        missingFromFile: missingFromFile,
+        status: detailsStatus,
+        confirmationDecision: confirmationDecision,
+        confirmedBy: confirmedBy,
+        confirmedAt: entry.when,
+        postAcceptanceAppliedCount: confirmationDecision === 'Proceed' ? appliedCount : 0
+      };
+    }
+
+    var importedEntryIndex = 0;
+    partialXmlHistoryEntries = partialXmlHistoryEntries.map(function (entry) {
+      if (entry.type !== 'Imported') {
+        return entry;
+      }
+      importedEntryIndex += 1;
+      return Object.assign({}, entry, {
+        details: buildImportedDetails(entry, importedEntryIndex)
+      });
+    });
 
     function uid(prefix) {
       return prefix + '-' + Math.random().toString(36).slice(2, 9);
@@ -1624,6 +1870,341 @@
     }
 
     bindAssignReviewerAction();
+
+    function closeImportExportXmlDialog() {
+      if (!importExportXmlDialogOverlay) {
+        return;
+      }
+      importExportXmlDialogOverlay.classList.remove('is-visible');
+    }
+
+    function closePartialXmlHistoryDialog() {
+      if (!partialXmlHistoryOverlay) {
+        return;
+      }
+      partialXmlHistoryOverlay.classList.remove('is-visible');
+      closePartialXmlEntryDetailsDialog();
+      document.body.classList.remove('overlay-scroll-lock');
+    }
+
+    function closePartialXmlEntryDetailsDialog() {
+      if (!partialXmlEntryDetailsOverlay) {
+        return;
+      }
+      partialXmlEntryDetailsOverlay.classList.remove('is-visible');
+    }
+
+    function getHistoryEntryKey(entry) {
+      return [entry.type, entry.packageId, entry.when, entry.user].join('||');
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderDetailListItems(items, formatter) {
+      if (!items || items.length === 0) {
+        return '<span class="partial-xml-details__empty">None</span>';
+      }
+
+      return '<ul class="partial-xml-details__list">' +
+        items.map(function (item) {
+          return '<li>' + formatter(item) + '</li>';
+        }).join('') +
+      '</ul>';
+    }
+
+    function renderMissingFromFile(items) {
+      if (!items || items.length === 0) {
+        return '<span class="partial-xml-details__empty">None</span>';
+      }
+      return escapeHtml(items.join(', '));
+    }
+
+    function ensurePartialXmlEntryDetailsDialog() {
+      if (partialXmlEntryDetailsOverlay) {
+        return partialXmlEntryDetailsOverlay;
+      }
+
+      partialXmlEntryDetailsOverlay = document.createElement('div');
+      partialXmlEntryDetailsOverlay.className = 'partial-xml-details-overlay';
+      partialXmlEntryDetailsOverlay.innerHTML = '' +
+        '<div class="partial-xml-details-panel" role="dialog" aria-modal="true" aria-labelledby="partial-xml-details-title">' +
+          '<div class="partial-xml-details-panel__header">' +
+            '<h3 id="partial-xml-details-title" class="partial-xml-details-panel__title">Import Details</h3>' +
+            '<button type="button" class="partial-xml-details-panel__close" aria-label="Close">&#215;</button>' +
+          '</div>' +
+          '<div class="partial-xml-details-panel__content"></div>' +
+        '</div>';
+
+      document.body.appendChild(partialXmlEntryDetailsOverlay);
+
+      partialXmlEntryDetailsOverlay.addEventListener('click', function (event) {
+        if (event.target === partialXmlEntryDetailsOverlay) {
+          closePartialXmlEntryDetailsDialog();
+        }
+      });
+
+      partialXmlEntryDetailsOverlay.querySelector('.partial-xml-details-panel__close').addEventListener('click', closePartialXmlEntryDetailsDialog);
+
+      return partialXmlEntryDetailsOverlay;
+    }
+
+    function renderPartialXmlEntryDetails(entry) {
+      if (!entry || !entry.details) {
+        return '<p class="partial-xml-details__empty">No details available for this entry.</p>';
+      }
+
+      var details = entry.details;
+      var statusClass = details.status === 'Failed' ? ' partial-xml-history__status--failed' : '';
+
+      return '' +
+        '<div class="partial-xml-details-grid">' +
+          '<div><strong>exportId</strong><span>' + escapeHtml(details.exportId) + '</span></div>' +
+          '<div><strong>language</strong><span>' + escapeHtml(details.language) + '</span></div>' +
+          '<div><strong>uploadedBy</strong><span>' + escapeHtml(details.uploadedBy) + '</span></div>' +
+          '<div><strong>uploadedAt</strong><span>' + escapeHtml(details.uploadedAt) + '</span></div>' +
+          '<div><strong>appliedCount</strong><span>' + escapeHtml(details.appliedCount) + '</span></div>' +
+          '<div><strong>skippedCount</strong><span>' + escapeHtml(details.skippedCount) + '</span></div>' +
+          '<div class="partial-xml-details-grid__full"><strong>skippedItems (fieldId + reason)</strong>' +
+            '<span>' + renderDetailListItems(details.skippedItems, function (item) {
+              return escapeHtml(item.fieldId + ' - ' + item.reason);
+            }) + '</span></div>' +
+          '<div class="partial-xml-details-grid__full"><strong>recoverableItems (fieldId + pageId where available + reason)</strong>' +
+            '<span>' + renderDetailListItems(details.recoverableItems, function (item) {
+              var pageText = item.pageId ? ' | pageId: ' + item.pageId : ' | pageId: N/A';
+              return escapeHtml(item.fieldId + pageText + ' - ' + item.reason);
+            }) + '</span></div>' +
+          '<div class="partial-xml-details-grid__full"><strong>missingFromFile (fieldId list)</strong><span>' + renderMissingFromFile(details.missingFromFile) + '</span></div>' +
+          '<div><strong>status</strong><span class="partial-xml-history__status' + statusClass + '">' + escapeHtml(details.status) + '</span></div>' +
+          '<div><strong>confirmationDecision</strong><span>' + escapeHtml(details.confirmationDecision) + '</span></div>' +
+          '<div><strong>confirmedBy</strong><span>' + escapeHtml(details.confirmedBy) + '</span></div>' +
+          '<div><strong>confirmedAt</strong><span>' + escapeHtml(details.confirmedAt) + '</span></div>' +
+          '<div><strong>postAcceptanceAppliedCount</strong><span>' + escapeHtml(details.postAcceptanceAppliedCount) + '</span></div>' +
+        '</div>';
+    }
+
+    function openPartialXmlEntryDetailsDialog(entry) {
+      var dialog = ensurePartialXmlEntryDetailsDialog();
+      var content = dialog.querySelector('.partial-xml-details-panel__content');
+      if (content) {
+        content.innerHTML = renderPartialXmlEntryDetails(entry);
+      }
+      dialog.classList.add('is-visible');
+    }
+
+    function parseHistoryTimestamp(timestamp) {
+      var match = String(timestamp || '').match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})\s+(AM|PM)$/i);
+      if (!match) {
+        return 0;
+      }
+
+      var year = Number(match[1]);
+      var month = Number(match[2]) - 1;
+      var day = Number(match[3]);
+      var hour = Number(match[4]);
+      var minute = Number(match[5]);
+      var meridiem = match[6].toUpperCase();
+
+      if (meridiem === 'PM' && hour !== 12) {
+        hour += 12;
+      }
+      if (meridiem === 'AM' && hour === 12) {
+        hour = 0;
+      }
+
+      return new Date(year, month, day, hour, minute, 0, 0).getTime();
+    }
+
+    function getSortedPartialXmlHistoryEntries() {
+      return partialXmlHistoryEntries.slice().sort(function (a, b) {
+        return parseHistoryTimestamp(b.when) - parseHistoryTimestamp(a.when);
+      });
+    }
+
+    function renderPartialXmlHistoryRow(entry) {
+      var isExportedEntry = entry.type === 'Exported';
+      var rowTypeClass = isExportedEntry ? ' partial-xml-history__row--exported' : ' partial-xml-history__row--imported';
+      var entryKey = escapeHtml(getHistoryEntryKey(entry));
+      var packageMarkup = entry.type === 'Exported'
+        ? '<a href="assets/' + entry.packageFileName + '" download="' + entry.packageFileName + '" class="partial-xml-history__package-link partial-xml-history__package-link--exported">' + entry.packageId + '</a>'
+        : '<span class="partial-xml-history__package-id partial-xml-history__package-id--imported">' + entry.packageId + '</span>';
+      var moreDetailsMarkup = isExportedEntry
+        ? ''
+        : '<button type="button" class="partial-xml-history__more-btn" data-entry-key="' + entryKey + '" aria-label="View import details" title="View details">&#8942;</button>';
+      var statusText = isExportedEntry ? 'Exported' : entry.status;
+      var entriesCount = typeof entry.affectedFields === 'number' ? entry.affectedFields : (entry.edits || 0);
+      var detailsMarkup = '' +
+        '<span><strong>When:</strong> ' + entry.when + '</span>' +
+        '<span><strong>User:</strong> ' + entry.user + '</span>' +
+        '<span><strong>Entries:</strong> ' + entriesCount + '</span>' +
+        '<span><strong>Status:</strong> <span class="partial-xml-history__status' + (statusText === 'Failed Import' ? ' partial-xml-history__status--failed' : '') + '">' + statusText + '</span></span>';
+
+      return '' +
+        '<div class="partial-xml-history__row' + rowTypeClass + '">' +
+          '<div class="partial-xml-history__head">' +
+            '<div class="partial-xml-history__head-main">' +
+              '<span class="partial-xml-history__type">' + entry.type + '</span>' +
+              packageMarkup +
+            '</div>' +
+            moreDetailsMarkup +
+          '</div>' +
+          '<div class="partial-xml-history__meta">' +
+            detailsMarkup +
+          '</div>' +
+        '</div>';
+    }
+
+    function ensurePartialXmlHistoryDialog() {
+      if (partialXmlHistoryOverlay) {
+        return partialXmlHistoryOverlay;
+      }
+
+      partialXmlHistoryOverlay = document.createElement('div');
+      partialXmlHistoryOverlay.className = 'partial-xml-history-overlay';
+      partialXmlHistoryOverlay.innerHTML = '' +
+        '<div class="partial-xml-history-panel" role="dialog" aria-modal="true" aria-labelledby="partial-xml-history-title">' +
+          '<div class="partial-xml-history-panel__header">' +
+            '<h2 id="partial-xml-history-title" class="partial-xml-history-panel__title">Partial XML History</h2>' +
+            '<button type="button" class="partial-xml-history-panel__close" aria-label="Close">&#215;</button>' +
+          '</div>' +
+          '<div class="partial-xml-history__list">' +
+            getSortedPartialXmlHistoryEntries().map(renderPartialXmlHistoryRow).join('') +
+          '</div>' +
+        '</div>';
+
+      document.body.appendChild(partialXmlHistoryOverlay);
+
+      partialXmlHistoryOverlay.addEventListener('click', function (event) {
+        var detailsButton = event.target.closest('.partial-xml-history__more-btn');
+        if (detailsButton) {
+          var targetEntryKey = detailsButton.getAttribute('data-entry-key');
+          var selectedEntry = getSortedPartialXmlHistoryEntries().find(function (entry) {
+            return getHistoryEntryKey(entry) === targetEntryKey;
+          });
+
+          if (selectedEntry && selectedEntry.type === 'Imported') {
+            openPartialXmlEntryDetailsDialog(selectedEntry);
+          }
+          return;
+        }
+
+        if (event.target === partialXmlHistoryOverlay) {
+          closePartialXmlHistoryDialog();
+        }
+      });
+
+      partialXmlHistoryOverlay.querySelector('.partial-xml-history-panel__close').addEventListener('click', closePartialXmlHistoryDialog);
+
+      return partialXmlHistoryOverlay;
+    }
+
+    function openPartialXmlHistoryDialog() {
+      var dialog = ensurePartialXmlHistoryDialog();
+      dialog.classList.add('is-visible');
+      document.body.classList.add('overlay-scroll-lock');
+    }
+
+    function ensureImportExportXmlDialog() {
+      if (importExportXmlDialogOverlay) {
+        return importExportXmlDialogOverlay;
+      }
+
+      importExportXmlDialogOverlay = document.createElement('div');
+      importExportXmlDialogOverlay.className = 'xml-dialog-overlay';
+      importExportXmlDialogOverlay.innerHTML = '' +
+        '<div class="xml-dialog-panel" role="dialog" aria-modal="true" aria-label="Import Export XML options">' +
+          '<div class="xml-dialog-row">' +
+            '<p class="xml-dialog-label">Download XML</p>' +
+            '<button type="button" class="xml-dialog-btn"><span class="xml-dialog-btn-icon" aria-hidden="true">&#8681;</span><span>Download</span></button>' +
+          '</div>' +
+          '<div class="xml-dialog-row">' +
+            '<p class="xml-dialog-label">Upload Course XML</p>' +
+            '<button type="button" class="xml-dialog-btn"><span class="xml-dialog-btn-icon" aria-hidden="true">&#8679;</span><span>Upload</span></button>' +
+          '</div>' +
+          '<div class="xml-dialog-row">' +
+            '<p class="xml-dialog-label">Upload Disclosure XML</p>' +
+            '<button type="button" class="xml-dialog-btn"><span class="xml-dialog-btn-icon" aria-hidden="true">&#8679;</span><span>Upload</span></button>' +
+          '</div>' +
+          '<div class="xml-dialog-row">' +
+            '<p class="xml-dialog-label">Download Partial XML</p>' +
+            '<button type="button" class="xml-dialog-btn"><span class="xml-dialog-btn-icon" aria-hidden="true">&#8681;</span><span>Download</span></button>' +
+          '</div>' +
+          '<div class="xml-dialog-row">' +
+            '<p class="xml-dialog-label">Upload Partial XML</p>' +
+            '<button type="button" class="xml-dialog-btn"><span class="xml-dialog-btn-icon" aria-hidden="true">&#8679;</span><span>Upload</span></button>' +
+          '</div>' +
+          '<div class="xml-dialog-footer">' +
+            '<button type="button" class="xml-dialog-export-word"><span class="xml-dialog-export-icon" aria-hidden="true">&#128196;</span><span>Export to Word</span></button>' +
+            '<button type="button" class="xml-dialog-export-word xml-dialog-history"><span class="xml-dialog-export-icon" aria-hidden="true">&#8634;</span><span>History</span></button>' +
+          '</div>' +
+        '</div>';
+
+      document.body.appendChild(importExportXmlDialogOverlay);
+
+      importExportXmlDialogOverlay.addEventListener('click', function (event) {
+        if (event.target === importExportXmlDialogOverlay) {
+          closeImportExportXmlDialog();
+        }
+      });
+
+      importExportXmlDialogOverlay.querySelectorAll('button').forEach(function (button) {
+        button.addEventListener('click', closeImportExportXmlDialog);
+      });
+
+      var historyButton = importExportXmlDialogOverlay.querySelector('.xml-dialog-history');
+      if (historyButton) {
+        historyButton.addEventListener('click', function () {
+          closeImportExportXmlDialog();
+          openPartialXmlHistoryDialog();
+        });
+      }
+
+      return importExportXmlDialogOverlay;
+    }
+
+    function openImportExportXmlDialog() {
+      var dialog = ensureImportExportXmlDialog();
+      dialog.classList.add('is-visible');
+    }
+
+    function bindImportExportXmlDialog() {
+      var triggerLabel = Array.from(document.querySelectorAll('p')).find(function (node) {
+        return node.textContent.trim() === 'Import/Export XML';
+      });
+
+      if (!triggerLabel) {
+        return;
+      }
+
+      var trigger = triggerLabel.closest('[data-name*="Button"]') || triggerLabel.parentElement;
+      if (!trigger) {
+        return;
+      }
+
+      trigger.style.cursor = 'pointer';
+      trigger.setAttribute('role', 'button');
+      trigger.setAttribute('tabindex', '0');
+
+      trigger.addEventListener('click', function (event) {
+        event.preventDefault();
+        openImportExportXmlDialog();
+      });
+
+      trigger.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openImportExportXmlDialog();
+        }
+      });
+    }
+
+    bindImportExportXmlDialog();
 
     function bindCustomizeYourCourseNavigation() {
       var navLabel = Array.from(document.querySelectorAll('p')).find(function (node) {
